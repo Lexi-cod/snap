@@ -16,3 +16,12 @@ venv/
 *.log
 data/pte/
 data/piper/
+
+# Android / Gradle
+.gradle/
+build/
+app/build/
+local.properties
+captures/
+*.apk
+*.aab

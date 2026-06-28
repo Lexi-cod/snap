@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="snapon_ink">#151515</color>
+    <color name="snapon_panel">#202124</color>
+    <color name="snapon_surface">#F7F8F4</color>
+    <color name="snapon_action">#D83A2E</color>
+    <color name="snapon_action_pressed">#B82E24</color>
+    <color name="snapon_cyan">#2BB3A3</color>
+    <color name="snapon_gold">#E6B450</color>
+    <color name="white">#FFFFFF</color>
+</resources>
