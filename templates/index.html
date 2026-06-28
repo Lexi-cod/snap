@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>SnapOn</title>
+  <style>
+    :root {
+      --accent:  #a78bfa;
+      --accent2: #60a5fa;
+      --success: #10b981;
+      --warn:    #f59e0b;
+      --danger:  #ef4444;
+      --glass:   rgba(255,255,255,0.07);
+      --border:  rgba(255,255,255,0.11);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100dvh;
+      overflow: hidden;
+      background: #000;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* ── Camera ── */
+    #cam {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    }
+    #canvas { display: none; }
+
+    /* ── Top bar ── */
+    #topbar {
+      position: fixed; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: calc(env(safe-area-inset-top, 0px) + 14px) 20px 14px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, transparent 100%);
+      z-index: 10; pointer-events: none;
+    }
+    .logo {
+      font-size: 1rem; font-weight: 800; letter-spacing: 0.04em;
+      background: linear-gradient(110deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    #topbar-right { display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+    #model-label  { font-size: 0.6rem; color: rgba(255,255,255,0.45); letter-spacing: 0.05em; }
+
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      transition: background 0.4s, box-shadow 0.4s;
+    }
+    .dot.green  { background: var(--success); box-shadow: 0 0 8px var(--success); }
+    .dot.yellow {
+      background: var(--warn); box-shadow: 0 0 8px var(--warn);
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    .dot.red    { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    /* ── Stage progress ── */
+    #progress-track {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 48px);
+      left: 0; right: 0; height: 2px;
+      background: rgba(255,255,255,0.07); z-index: 10;
+    }
+    #progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #7c3aed, var(--accent2));
+      transition: width 0.45s cubic-bezier(0.4,0,0.2,1);
+    }
+    #stage-label {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 52px);
+      left: 0; right: 0; text-align: center;
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.45);
+      z-index: 10; opacity: 0; transition: opacity 0.2s;
+    }
+    body:not([data-state="idle"]) #stage-label { opacity: 1; }
+
+    /* ── Answer overlay ── */
+    #overlay {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 24px 22px calc(env(safe-area-inset-bottom, 0px) + 116px);
+      background: linear-gradient(to top, rgba(0,0,0,0.82) 55%, transparent);
+      z-index: 5; opacity: 0; transform: translateY(12px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+    }
+    #overlay.visible {
+      opacity: 1; transform: translateY(0); pointer-events: auto;
+    }
+    #status-msg {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.12em;
+      text-transform: uppercase; color: rgba(255,255,255,0.5);
+      min-height: 1.2em; margin-bottom: 8px;
+    }
+    #answer-text {
+      font-size: 1.08rem; line-height: 1.65; color: #fff;
+      word-wrap: break-word; overflow-wrap: break-word;
+      max-height: 38dvh; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .streaming::after {
+      content: '\25AE';
+      animation: blink 0.65s step-end infinite;
+      color: rgba(167,139,250,0.85); margin-left: 1px;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    /* ── Mic / waveform ── */
+    #mic-area {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px; z-index: 10;
+    }
+    #waveform {
+      display: flex; align-items: center; gap: 2.5px;
+      height: 38px; opacity: 0; transition: opacity 0.25s;
+    }
+    body[data-state="recording"] #waveform { opacity: 1; }
+    .wv-bar {
+      width: 3px; background: #fff; border-radius: 3px;
+      height: 100%; transform: scaleY(0.06); transform-origin: center;
+    }
+    #mic-btn {
+      position: relative;
+      width: 60px; height: 60px; border-radius: 50%;
+      background: rgba(255,255,255,0.10);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(10px); cursor: pointer; flex-shrink: 0;
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    body[data-state="idle"] #mic-btn {
+      animation: idle-glow 3.2s ease-in-out infinite;
+    }
+    @keyframes idle-glow {
+      0%,100% { box-shadow: 0 0 14px rgba(167,139,250,0.25); }
+      50%      { box-shadow: 0 0 28px rgba(167,139,250,0.55);
+                 border-color: rgba(167,139,250,0.5); }
+    }
+    body[data-state="recording"] #mic-btn {
+      background: rgba(239,68,68,0.22);
+      border-color: rgba(239,68,68,0.6);
+      box-shadow: 0 0 22px rgba(239,68,68,0.45);
+      animation: none;
+    }
+    body[data-state="processing"] #mic-btn { opacity: 0.45; animation: none; }
+
+    .ripple-ring {
+      position: absolute; width: 60px; height: 60px;
+      border-radius: 50%;
+      border: 2px solid rgba(167,139,250,0.55);
+      opacity: 0; pointer-events: none;
+    }
+    body[data-state="processing"] .ripple-ring:nth-child(1) {
+      animation: ripple 1.3s 0.0s ease-out infinite;
+    }
+    body[data-state="processing"] .ripple-ring:nth-child(2) {
+      animation: ripple 1.3s 0.45s ease-out infinite;
+    }
+    @keyframes ripple {
+      0%   { transform: scale(1);   opacity: 0.75; }
+      100% { transform: scale(2.8); opacity: 0; }
+    }
+
+    #tap-hint {
+      font-size: 0.65rem; letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.38); white-space: nowrap;
+      transition: opacity 0.2s; text-align: center; max-width: 280px;
+    }
+    body:not([data-state="idle"]) #tap-hint { opacity: 0; }
+
+    /* Source tag shown after an answer to indicate memory vs general knowledge */
+    #source-tag {
+      display: none; margin-top: 8px;
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      padding: 3px 10px; border-radius: 99px;
+    }
+    #source-tag.memory {
+      display: inline-block;
+      background: rgba(16,185,129,0.18); color: #6ee7b7;
+      border: 1px solid rgba(16,185,129,0.3);
+    }
+    #source-tag.general {
+      display: inline-block;
+      background: rgba(96,165,250,0.12); color: #93c5fd;
+      border: 1px solid rgba(96,165,250,0.25);
+    }
+
+    /* ── Memories panel ── */
+    #mem-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.52);
+      z-index: 49; opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #mem-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    #mem-panel {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 68dvh;
+      background: rgba(8,8,18,0.93);
+      backdrop-filter: blur(22px);
+      border-radius: 20px 20px 0 0;
+      border-top: 1px solid var(--border);
+      z-index: 50; transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.32,0,0.67,0);
+      display: flex; flex-direction: column;
+    }
+    #mem-panel.open {
+      transform: translateY(0);
+      transition: transform 0.38s cubic-bezier(0.22,1,0.36,1);
+    }
+    #mem-handle {
+      width: 38px; height: 4px;
+      background: rgba(255,255,255,0.28); border-radius: 2px;
+      margin: 11px auto 4px; flex-shrink: 0; cursor: pointer;
+    }
+    #mem-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 20px 12px; flex-shrink: 0;
+    }
+    #mem-header span { font-size: 1rem; font-weight: 700; }
+    #mem-close {
+      background: none; border: none;
+      color: rgba(255,255,255,0.45);
+      font-size: 1.25rem; line-height: 1;
+      cursor: pointer; padding: 4px 6px;
+    }
+    #mem-scroll {
+      flex: 1; overflow-y: auto;
+      padding: 0 16px calc(env(safe-area-inset-bottom,0px) + 18px);
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
+    }
+    .mem-card {
+      background: var(--glass); border: 1px solid var(--border);
+      border-radius: 13px; padding: 13px 14px; margin-bottom: 10px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .mem-body { flex: 1; min-width: 0; }
+    .mem-text { font-size: 0.85rem; line-height: 1.55; word-break: break-word; }
+    .mem-meta {
+      margin-top: 5px; display: flex; align-items: center; gap: 7px;
+      font-size: 0.62rem; color: rgba(255,255,255,0.38);
+    }
+    .mem-tag {
+      background: rgba(124,58,237,0.28); color: #c4b5fd;
+      padding: 1px 8px; border-radius: 99px;
+      font-size: 0.58rem; font-weight: 700; letter-spacing: 0.04em;
+    }
+    .mem-del {
+      background: none; border: none;
+      color: rgba(239,100,100,0.5); font-size: 1.15rem;
+      cursor: pointer; padding: 0 3px; flex-shrink: 0;
+      line-height: 1; transition: color 0.2s;
+    }
+    .mem-del:active { color: var(--danger); }
+    .mem-empty { font-size: 0.82rem; color: rgba(255,255,255,0.33); padding: 16px 0; }
+
+    /* ── Swipe hint ── */
+    #swipe-hint {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom,0px) + 108px);
+      left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 8;
+    }
+    #swipe-hint.show { opacity: 1; }
+    #swipe-hint span {
+      font-size: 0.58rem; color: rgba(255,255,255,0.32);
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .swipe-chevron {
+      width: 0; height: 0;
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-bottom: 7px solid rgba(255,255,255,0.28);
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      top: calc(env(safe-area-inset-top,0px) + 62px);
+      left: 50%; transform: translateX(-50%) translateY(-8px);
+      background: rgba(15,15,25,0.95); border: 1px solid var(--border);
+      border-radius: 22px; padding: 8px 20px;
+      font-size: 0.78rem; font-weight: 600;
+      white-space: nowrap; z-index: 100;
+      opacity: 0; transition: opacity 0.22s, transform 0.22s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.success { border-color: rgba(16,185,129,0.4);  color: #6ee7b7; }
+    #toast.info    { border-color: rgba(96,165,250,0.4);  color: #93c5fd; }
+    #toast.error   { border-color: rgba(239,68,68,0.4);   color: #fca5a5; }
+
+    /* ── Tap ripple ── */
+    .tap-splash {
+      position: fixed; pointer-events: none; z-index: 4;
+      border-radius: 50%; width: 40px; height: 40px;
+      background: rgba(255,255,255,0.16);
+      transform: translate(-50%, -50%) scale(0);
+      animation: tap-expand 0.45s ease-out forwards;
+    }
+    @keyframes tap-expand {
+      to { transform: translate(-50%, -50%) scale(5); opacity: 0; }
+    }
+
+    /* ── Live transcript (wake-word listening feedback) ── */
+    #transcript-live {
+      max-width: 300px;
+      text-align: center;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.72);
+      letter-spacing: 0.01em;
+      word-break: break-word;
+      min-height: 1.25em;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+      pointer-events: none;
+    }
+    #transcript-live.visible { opacity: 1; }
+    /* Hide transcript when not in idle — recording/processing have their own UI */
+    body:not([data-state="idle"]) #transcript-live {
+      opacity: 0 !important;
+    }
+
+    /* Mic button pulses more visibly while actively listening for wake word */
+    body[data-state="idle"] #mic-btn {
+      animation: idle-glow 3.2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body data-state="idle">
+
+  <!-- Camera -->
+  <video id="cam" autoplay playsinline muted></video>
+  <canvas id="canvas"></canvas>
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <span class="logo">SnapOn</span>
+    <div id="topbar-right">
+      <span id="model-label"></span>
+      <span id="status-dot" class="dot yellow"></span>
+    </div>
+  </div>
+
+  <!-- Stage progress -->
+  <div id="progress-track"><div id="progress-fill"></div></div>
+  <div id="stage-label"></div>
+
+  <!-- Answer overlay -->
+  <div id="overlay">
+    <p id="status-msg"></p>
+    <p id="answer-text"></p>
+    <div id="source-tag"></div>
+  </div>
+
+  <!-- Swipe hint -->
+  <div id="swipe-hint">
+    <div class="swipe-chevron"></div>
+    <span>swipe up for memories</span>
+  </div>
+
+  <!-- Mic area -->
+  <div id="mic-area">
+    <div id="transcript-live"></div>
+    <div id="waveform"></div>
+    <div id="mic-btn" role="img" aria-label="Listening for wake word">
+      <div class="ripple-ring"></div>
+      <div class="ripple-ring"></div>
+      <svg viewBox="0 0 24 24" fill="white" width="26" height="26" aria-hidden="true">
+        <path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </div>
+    <div id="tap-hint">Point camera and ask anything — or save something to remember it later</div>
+  </div>
+
+  <!-- Memories panel -->
+  <div id="mem-backdrop" onclick="hideMemories()"></div>
+  <div id="mem-panel" role="dialog" aria-label="Memories">
+    <div id="mem-handle" onclick="hideMemories()" role="button" aria-label="Close"></div>
+    <div id="mem-header">
+      <span>Memories</span>
+      <button id="mem-close" onclick="hideMemories()" aria-label="Close">&#x2715;</button>
+    </div>
+    <div id="mem-scroll"><div id="mem-list"></div></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" role="status"></div>
+
+<script>
+'use strict';
+
+// ── Config ────────────────────────────────────────────────────────────────────
+const SILENCE_THRESHOLD = 13;    // avg freq amplitude below this = silence
+const SILENCE_MS        = 1500;  // ms of silence before auto-stop
+const ANSWER_HIDE_MS    = 9000;  // ms before answer overlay auto-hides
+const N_BARS            = 24;    // waveform bar count
+const READY_POLL_MS     = 2000;  // polling interval for /api/ready
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let appState     = 'idle';  // idle | recording | processing
+let audioCtx     = null;
+let analyser     = null;
+let mediaRec     = null;
+let audioChunks  = [];
+let currentStream = null;
+let stopRecFn    = null;
+let answerTimer  = null;
+let fullAnswer   = '';
+let memoriesOpen = false;
+let readyInterval = null;
+
+// ── DOM refs ──────────────────────────────────────────────────────────────────
+const camEl           = document.getElementById('cam');
+const canvasEl        = document.getElementById('canvas');
+const statusDot       = document.getElementById('status-dot');
+const modelLabel      = document.getElementById('model-label');
+const progressFill    = document.getElementById('progress-fill');
+const stageLabel      = document.getElementById('stage-label');
+const overlay         = document.getElementById('overlay');
+const statusMsg       = document.getElementById('status-msg');
+const answerText      = document.getElementById('answer-text');
+const waveformEl      = document.getElementById('waveform');
+const memPanel        = document.getElementById('mem-panel');
+const memBackdrop     = document.getElementById('mem-backdrop');
+const memList         = document.getElementById('mem-list');
+const toastEl         = document.getElementById('toast');
+const swipeHint       = document.getElementById('swipe-hint');
+const transcriptLiveEl = document.getElementById('transcript-live');
+
+// Build waveform bars
+const bars = Array.from({ length: N_BARS }, () => {
+  const b = document.createElement('div');
+  b.className = 'wv-bar';
+  waveformEl.appendChild(b);
+  return b;
+});
+
+// ── Camera ────────────────────────────────────────────────────────────────────
+async function startCamera() {
+  const constraints = [
+    { video: { facingMode: { ideal: 'environment' }, width:{ideal:1280}, height:{ideal:720} }, audio: false },
+    { video: true, audio: false },
+  ];
+  for (const c of constraints) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(c);
+      camEl.srcObject = stream;
+      // Only mirror-flip front camera; rear camera shows natural orientation
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      camEl.style.transform = (settings.facingMode === 'user') ? 'scaleX(-1)' : '';
+      await camEl.play();
+      return;
+    } catch {}
+  }
+  setDot('red');
+  showToast('Camera unavailable', 'error');
+}
+
+function captureFrame() {
+  return new Promise(resolve => {
+    const w = camEl.videoWidth  || 640;
+    const h = camEl.videoHeight || 360;
+    canvasEl.width  = w;
+    canvasEl.height = h;
+    canvasEl.getContext('2d').drawImage(camEl, 0, 0, w, h);
+    canvasEl.toBlob(resolve, 'image/jpeg', 0.88);
+  });
+}
+
+// ── Recording ─────────────────────────────────────────────────────────────────
+async function startRecording() {
+  if (appState === 'recording') {
+    // Second tap = manual stop
+    if (stopRecFn) stopRecFn();
+    return;
+  }
+  if (appState !== 'idle') return;
+
+  setState('recording');
+  haptic();
+  showOverlay(true);
+  setStatus('Listening…');
+  setProgress(5, '');
+
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    currentStream = stream;
+    audioChunks = [];
+
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+
+    const dataArr = new Uint8Array(analyser.frequencyBinCount);
+    let silenceMs = 0;
+    let active    = true;
+
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm';
+
+    mediaRec = new MediaRecorder(stream, { mimeType: mime });
+    mediaRec.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
+    mediaRec.start(80);
+
+    function tick() {
+      if (!active) return;
+      analyser.getByteFrequencyData(dataArr);
+
+      // Drive waveform
+      const step = Math.floor(dataArr.length / N_BARS);
+      for (let i = 0; i < N_BARS; i++) {
+        bars[i].style.transform = 'scaleY(' + Math.max(0.05, (dataArr[i * step] / 255) * 0.95) + ')';
+      }
+
+      // Silence detection
+      let sum = 0;
+      for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
+      if ((sum / dataArr.length) < SILENCE_THRESHOLD) {
+        silenceMs += 40;
+        if (silenceMs >= SILENCE_MS) { active = false; finish(); return; }
+      } else {
+        silenceMs = 0;
+      }
+      requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+
+    stopRecFn = () => { if (active) { active = false; finish(); } };
+
+    async function finish() {
+      bars.forEach(b => { b.style.transform = 'scaleY(0.05)'; });
+      if (appState !== 'recording') return;
+      setState('processing');
+      stopRecFn = null;
+
+      const audioBlob = await new Promise(res => {
+        if (mediaRec.state !== 'inactive') {
+          mediaRec.onstop = () => res(
+            audioChunks.length ? new Blob(audioChunks, { type: mime }) : null
+          );
+          mediaRec.stop();
+        } else {
+          res(null);
+        }
+      });
+
+      stream.getTracks().forEach(t => t.stop());
+      currentStream = null;
+
+      const imageBlob = await captureFrame();
+      await submitQuery(audioBlob, imageBlob);
+    }
+
+  } catch (err) {
+    console.error('[rec]', err);
+    setState('idle');
+    setStatus('');
+    hideOverlay();
+    showToast('Mic unavailable', 'error');
+  }
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function submitQuery(audioBlob, imageBlob) {
+  setProgress(20, 'Transcribing…');
+  setStatus('Thinking…');
+
+  const fd = new FormData();
+  if (audioBlob) fd.append('audio', audioBlob, 'voice.webm');
+  if (imageBlob) fd.append('image', imageBlob, 'snap.jpg');
+
+  try {
+    const resp = await fetch('/api/query', { method: 'POST', body: fd });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    await consumeSSE(resp.body.getReader());
+  } catch (err) {
+    console.error('[submit]', err);
+    setStatus('Error — try again');
+    setTimeout(() => { setState('idle'); setProgress(0, ''); hideOverlay(); }, 2500);
+  }
+}
+
+// ── SSE consumer ──────────────────────────────────────────────────────────────
+const STAGE_MAP = {
+  transcrib: [28,  'Transcribing…'],
+  search:    [52,  'Searching memory…'],
+  memory:    [52,  'Searching memory…'],
+  generat:   [76,  'Generating…'],
+  speak:     [95,  'Speaking…'],
+  sav:       [90,  'Saving…'],
+};
+
+async function consumeSSE(reader) {
+  const dec = new TextDecoder();
+  let buf = '';
+  fullAnswer = '';
+  answerText.textContent = '';
+  answerText.classList.add('streaming');
+
+  while (true) {
+    let chunk;
+    try { chunk = await reader.read(); } catch { break; }
+    if (chunk.done) break;
+
+    buf += dec.decode(chunk.value, { stream: true });
+    const parts = buf.split('\n\n');
+    buf = parts.pop();
+
+    for (const part of parts) {
+      for (const line of part.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        try { handleSSEEvent(JSON.parse(line.slice(6))); } catch {}
+      }
+    }
+  }
+}
+
+function handleSSEEvent(ev) {
+  if (ev.type === 'status') {
+    const msg = (ev.message || '').toLowerCase();
+    const key = Object.keys(STAGE_MAP).find(k => msg.includes(k));
+    if (key) { const [p, l] = STAGE_MAP[key]; setProgress(p, l); }
+    setStatus(ev.message);
+
+  } else if (ev.type === 'token') {
+    fullAnswer += ev.text;
+    answerText.textContent = fullAnswer;
+
+  } else if (ev.type === 'done') {
+    fullAnswer = ev.answer || fullAnswer;
+    answerText.textContent = fullAnswer;
+    answerText.classList.remove('streaming');
+    const srcTag = document.getElementById('source-tag');
+    if (srcTag) {
+      if (ev.memory_count > 0) {
+        srcTag.textContent = 'From memory';
+        srcTag.className = 'memory';
+      } else {
+        srcTag.textContent = 'General knowledge';
+        srcTag.className = 'general';
+      }
+    }
+    setProgress(100, 'Done');
+    setStatus('');
+    setState('idle');
+    speakText(fullAnswer);
+    clearTimeout(answerTimer);
+    answerTimer = setTimeout(() => { hideOverlay(); setProgress(0, ''); }, ANSWER_HIDE_MS);
+
+  } else if (ev.type === 'saved') {
+    answerText.classList.remove('streaming');
+    answerText.textContent = '';
+    setProgress(100, 'Saved');
+    setStatus('');
+    setState('idle');
+    showToast('Saved to memory ✓', 'success');
+    speakText('Got it, saved to memory.');
+    setTimeout(() => { hideOverlay(); setProgress(0, ''); }, 2500);
+
+  } else if (ev.type === 'error') {
+    answerText.classList.remove('streaming');
+    setStatus('Error: ' + ev.message);
+    setState('idle');
+    setTimeout(() => { setProgress(0, ''); }, 2500);
+  }
+}
+
+// ── Browser TTS ───────────────────────────────────────────────────────────────
+function speakText(text) {
+  if (!text || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text.slice(0, 500));
+  utt.rate  = 1.08;
+  utt.pitch = 1.0;
+  const voices = window.speechSynthesis.getVoices();
+  const voice  = voices.find(v => v.lang.startsWith('en') && v.localService)
+              || voices.find(v => v.lang.startsWith('en'))
+              || null;
+  if (voice) utt.voice = voice;
+  window.speechSynthesis.speak(utt);
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────────
+function setState(s) {
+  appState = s;
+  document.body.dataset.state = s;
+  if (s === 'idle') {
+    resumeWake();
+  } else {
+    pauseWake();
+    clearTranscript();
+  }
+}
+function setDot(c)   { statusDot.className = 'dot ' + c; }
+function setStatus(m){ statusMsg.textContent = m; }
+function setProgress(pct, label) {
+  progressFill.style.width = pct + '%';
+  stageLabel.textContent   = label;
+}
+function showOverlay(reset) {
+  overlay.classList.add('visible');
+  clearTimeout(answerTimer);
+  if (reset) { answerText.textContent = ''; fullAnswer = ''; }
+}
+function hideOverlay() {
+  overlay.classList.remove('visible');
+  answerText.classList.remove('streaming');
+  answerText.textContent = '';
+  statusMsg.textContent  = '';
+  const srcTag = document.getElementById('source-tag');
+  if (srcTag) srcTag.className = '';
+}
+function haptic() { try { navigator.vibrate?.([45]); } catch {} }
+
+let toastTimer = null;
+function showToast(msg, type) {
+  toastEl.textContent = msg;
+  toastEl.className   = 'show ' + (type || 'info');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.className = ''; }, 3000);
+}
+
+function tapSplash(x, y) {
+  const el = document.createElement('div');
+  el.className = 'tap-splash';
+  el.style.left = x + 'px';
+  el.style.top  = y + 'px';
+  document.body.appendChild(el);
+  el.addEventListener('animationend', () => el.remove(), { once: true });
+}
+
+// ── Memories panel ────────────────────────────────────────────────────────────
+function showMemories() {
+  if (memoriesOpen) return;
+  memoriesOpen = true;
+  memPanel.classList.add('open');
+  memBackdrop.classList.add('open');
+  loadMemories();
+}
+function hideMemories() {
+  memoriesOpen = false;
+  memPanel.classList.remove('open');
+  memBackdrop.classList.remove('open');
+}
+async function loadMemories() {
+  memList.innerHTML = '<p class="mem-empty">Loading…</p>';
+  try {
+    const r = await fetch('/api/memories');
+    const d = await r.json();
+    if (!d.memories || !d.memories.length) {
+      memList.innerHTML = '<p class="mem-empty">No memories yet. Tap to speak something to remember.</p>';
+      return;
+    }
+    memList.innerHTML = d.memories.map(m =>
+      '<div class="mem-card" id="mc-' + m.id + '">' +
+        '<div class="mem-body">' +
+          '<div class="mem-text">' + esc(m.text) + '</div>' +
+          '<div class="mem-meta">' +
+            (m.tag ? '<span class="mem-tag">' + esc(m.tag) + '</span>' : '') +
+            '<span>' + fmtDate(m.created_at) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<button class="mem-del" onclick="deleteMem(' + m.id + ')" aria-label="Delete">\xd7</button>' +
+      '</div>'
+    ).join('');
+  } catch {
+    memList.innerHTML = '<p class="mem-empty" style="color:#fca5a5">Failed to load.</p>';
+  }
+}
+async function deleteMem(id) {
+  try {
+    const r = await fetch('/api/memories/' + id, { method: 'DELETE' });
+    const d = await r.json();
+    if (d.result === 'deleted') {
+      document.getElementById('mc-' + id)?.remove();
+      if (!memList.querySelector('.mem-card')) {
+        memList.innerHTML = '<p class="mem-empty">No memories yet.</p>';
+      }
+      showToast('Deleted', 'info');
+    }
+  } catch { showToast('Delete failed', 'error'); }
+}
+
+// ── /ready polling ────────────────────────────────────────────────────────────
+async function checkReady() {
+  try {
+    const r = await fetch('/api/ready');
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    if (d.ready) {
+      setDot('green');
+      modelLabel.textContent = '';
+      clearInterval(readyInterval);
+      readyInterval = null;
+    } else if (!d.embed_ready) {
+      setDot('yellow');
+      modelLabel.textContent = 'Loading embed…';
+    } else {
+      setDot('yellow');
+      modelLabel.textContent = 'Loading vision…';
+    }
+  } catch {
+    setDot('red');
+    modelLabel.textContent = 'Server offline';
+  }
+}
+
+// ── Pointer / touch input ─────────────────────────────────────────────────────
+let ptX = 0, ptY = 0, ptMoved = false, ptT = 0;
+
+// Prevent viewport scroll/zoom on camera background; let memories panel scroll
+document.addEventListener('touchstart', function(e) {
+  if (memPanel.contains(e.target)) return;
+  e.preventDefault();
+}, { passive: false });
+
+document.addEventListener('pointerdown', function(e) {
+  ptX = e.clientX; ptY = e.clientY; ptMoved = false; ptT = Date.now();
+}, { passive: true });
+
+document.addEventListener('pointermove', function(e) {
+  if (Math.abs(e.clientX - ptX) > 12 || Math.abs(e.clientY - ptY) > 12) ptMoved = true;
+}, { passive: true });
+
+document.addEventListener('pointerup', function(e) {
+  if (memPanel.contains(e.target) || memBackdrop.contains(e.target)) return;
+  const dt = Date.now() - ptT;
+  const dy = ptY - e.clientY;          // positive = swipe up
+  const dx = Math.abs(ptX - e.clientX);
+
+  if (!ptMoved || dt < 180) {
+    // Tap — only dismiss memories panel; recording is wake-word-only now
+    if (memoriesOpen) hideMemories();
+  } else if (dy > 65 && dx < 55 && appState === 'idle' && !memoriesOpen) {
+    showMemories();
+  } else if (dy < -65 && dx < 55 && memoriesOpen) {
+    hideMemories();
+  }
+}, { passive: true });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function fmtDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleString(undefined, { dateStyle:'short', timeStyle:'short' }); }
+  catch { return iso; }
+}
+
+// ── Wake word (Web Speech API continuous listener) ────────────────────────────
+const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let wakeRec       = null;
+let wakeRunning   = false;
+let transcriptTmr = null;
+
+function initWakeWord() {
+  if (!_SR) {
+    // Browser doesn't support SpeechRecognition — show a static note
+    transcriptLiveEl.textContent = 'Wake word unsupported in this browser';
+    transcriptLiveEl.classList.add('visible');
+    return;
+  }
+
+  wakeRec = new _SR();
+  wakeRec.continuous      = true;
+  wakeRec.interimResults  = true;
+  wakeRec.lang            = 'en-US';
+  wakeRec.maxAlternatives = 1;
+
+  wakeRec.onstart = () => { wakeRunning = true; };
+
+  wakeRec.onresult = (event) => {
+    if (appState !== 'idle') return;
+
+    // Accumulate all new results (interim + final) into one string
+    let transcript = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+
+    const lower = transcript.toLowerCase().trim();
+
+    // Show what the user is saying as live confidence feedback
+    setTranscript(transcript.trim());
+
+    // Detect wake phrase with word-boundary matching
+    if (/\bhey\s+snap\b/i.test(lower)) {
+      onWakeWordDetected();
+      return;
+    }
+
+    // Auto-clear transcript after 2.5 s of silence
+    clearTimeout(transcriptTmr);
+    transcriptTmr = setTimeout(clearTranscript, 2500);
+  };
+
+  wakeRec.onerror = (e) => {
+    wakeRunning = false;
+    if (e.error === 'not-allowed') {
+      showToast('Mic permission denied', 'error');
+      return;
+    }
+    // All other errors (network, aborted, etc.) — restart after brief pause
+    if (appState === 'idle') setTimeout(resumeWake, 1200);
+  };
+
+  wakeRec.onend = () => {
+    wakeRunning = false;
+    // Auto-restart so it stays always-on while idle
+    if (appState === 'idle') setTimeout(resumeWake, 400);
+  };
+
+  resumeWake();
+}
+
+function resumeWake() {
+  if (!wakeRec || wakeRunning || appState !== 'idle') return;
+  try { wakeRec.start(); } catch (e) {
+    if (e.name !== 'InvalidStateError') console.warn('[wake] start:', e.message);
+  }
+}
+
+function pauseWake() {
+  wakeRunning = false;
+  try { wakeRec?.stop(); } catch {}
+}
+
+function onWakeWordDetected() {
+  clearTranscript();
+  pauseWake();
+  haptic();
+  // Short visual pause so the transition feels intentional, then start recording
+  setTimeout(startRecording, 180);
+}
+
+function setTranscript(text) {
+  if (!text) { clearTranscript(); return; }
+  transcriptLiveEl.textContent = text;
+  transcriptLiveEl.classList.add('visible');
+}
+
+function clearTranscript() {
+  clearTimeout(transcriptTmr);
+  transcriptLiveEl.textContent = '';
+  transcriptLiveEl.classList.remove('visible');
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+startCamera();
+readyInterval = setInterval(checkReady, READY_POLL_MS);
+checkReady();
+initWakeWord();
+
+// Preload speechSynthesis voices (async in Chrome)
+if (window.speechSynthesis) {
+  window.speechSynthesis.getVoices();
+  if (typeof window.speechSynthesis.addEventListener === 'function') {
+    window.speechSynthesis.addEventListener('voiceschanged', function() {
+      window.speechSynthesis.getVoices();
+    });
+  }
+}
+
+// Show swipe hint briefly after 5s idle
+setTimeout(function() {
+  if (appState === 'idle') {
+    swipeHint.classList.add('show');
+    setTimeout(function() { swipeHint.classList.remove('show'); }, 4500);
+  }
+}, 5000);
+</script>
+</body>
+</html>

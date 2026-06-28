@@ -1,0 +1,5 @@
+{
+  "max_memories": 200,
+  "auto_cleanup": true,
+  "similarity_threshold": 0.35
+}
