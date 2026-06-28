@@ -65,14 +65,17 @@ def health():
 @app.route("/ready")
 def ready():
     from server.pipeline import smolvlm_model, embed_model, clip_model
+    from server.runtime_config import runtime_readiness
     vlm_ready  = smolvlm_model is not None
     embed_ready = embed_model is not None
     clip_ready  = clip_model is not None
+    on_device = runtime_readiness()
     return jsonify({
         "vlm_ready":   vlm_ready,
         "embed_ready": embed_ready,
         "clip_ready":  clip_ready,
         "ready":       vlm_ready and clip_ready,
+        "on_device_runtime": on_device,
     })
 
 

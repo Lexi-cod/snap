@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "target_device": {
+    "name": "Samsung Galaxy S25 Ultra",
+    "soc": "Snapdragon 8 Elite",
+    "qnn_arch": "SM8750",
+    "runtime": "ExecuTorch Qualcomm QNN"
+  },
+  "tasks": [
+    {
+      "id": "visual_question_answering",
+      "label": "Visual question answering",
+      "primary_runtime": "executorch_qnn",
+      "fallback_runtime": "desktop_python_internvl3",
+      "model_artifacts": ["internvl3_1b_vlm_pte", "internvl3_tokenizer"],
+      "required_for_phone_demo": true,
+      "status": "artifact_required",
+      "notes": "Android should call the VLM runtime directly with camera frames and text prompts. The Flask/Python path is development-only."
+    },
+    {
+      "id": "scene_description",
+      "label": "Scene description",
+      "primary_runtime": "executorch_qnn",
+      "fallback_runtime": "desktop_python_internvl3",
+      "model_artifacts": ["internvl3_1b_vlm_pte", "internvl3_tokenizer"],
+      "required_for_phone_demo": true,
+      "status": "artifact_required",
+      "notes": "Uses the same VLM artifact as visual question answering."
+    },
+    {
+      "id": "memory_text_embedding",
+      "label": "Memory text embeddings",
+      "primary_runtime": "executorch_qnn",
+      "fallback_runtime": "desktop_python_internvl3",
+      "model_artifacts": ["internvl3_1b_text_embed_pte", "internvl3_tokenizer"],
+      "required_for_phone_demo": true,
+      "status": "artifact_required",
+      "notes": "Planned to use the InternVL3/Qwen hidden-state embedding path currently prototyped in Python."
+    },
+    {
+      "id": "speech_to_text",
+      "label": "Speech to text",
+      "primary_runtime": "executorch_qnn",
+      "fallback_runtime": "desktop_python_faster_whisper",
+      "model_artifacts": ["whisper_tiny_en_pte", "whisper_tokenizer"],
+      "required_for_phone_demo": false,
+      "status": "artifact_required",
+      "notes": "Push-to-talk should use this runtime when the Whisper QNN artifact is present. Text input remains the safe local fallback."
+    },
+    {
+      "id": "text_to_speech",
+      "label": "Text to speech",
+      "primary_runtime": "local_cpu_piper",
+      "fallback_runtime": "android_text_output",
+      "model_artifacts": ["piper_lessac_medium_onnx", "piper_lessac_medium_config"],
+      "required_for_phone_demo": false,
+      "status": "optional_asset",
+      "notes": "Piper is CPU/local audio, not QNN. Spoken output is optional; text response must always work."
+    },
+    {
+      "id": "visual_similarity",
+      "label": "Visual memory retrieval",
+      "primary_runtime": "local_cpu_vector_search",
+      "fallback_runtime": "sqlite_keyword_search",
+      "model_artifacts": [],
+      "required_for_phone_demo": false,
+      "status": "interface_only",
+      "notes": "Current Python prototype uses CLIP + FAISS. Android should either package a supported embedding model or fall back to text retrieval until measured."
+    }
+  ]
+}

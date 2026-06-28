@@ -8,7 +8,18 @@ Right now it is a desktop-hosted Python + Flask prototype with a browser UI.
 - UI runs in a browser via `client/app.py` and `templates/index.html`.
 - Inference runs in Python on the host machine via `server/app.py` and `server/pipeline.py`.
 - Persistence uses local SQLite + FAISS files in `~/snapon/data`.
-- The README claims QNN / ExecuTorch / on-device deployment, but the codebase does not yet implement that runtime.
+- The README now describes QNN / ExecuTorch as an on-device foundation, not a completed runtime.
+
+## Foundation added on `codex/executorch-runtime`
+
+- `config/runtime_tasks.json` defines which tasks target ExecuTorch/QNN and which local fallbacks are allowed.
+- `models/artifact_manifest.json` records expected `.pte`, tokenizer/config, and optional Piper voice assets.
+- `server/runtime_config.py` validates runtime configuration and reports missing artifacts.
+- `server/on_device_runtime.py` adds the callable runtime boundary the Android/JNI implementation should satisfy later.
+- `android/runtime/SnapOnRuntimeContract.kt` adds a Kotlin-side runtime contract for the future Android app.
+- `scripts/setup_executorch.sh` now stages the planned InternVL3/Whisper/QNN asset flow for SM8750 instead of pointing at an unrelated Llama/Qwen export example.
+
+This does not yet make the product path phone-native. It makes the missing runtime assets and integration boundary explicit.
 
 ## Blocking gaps for hackathon compliance
 
@@ -33,15 +44,16 @@ Why it matters:
 
 What exists:
 - Python `transformers` load path in `server/pipeline.py`
-- README export notes
-- `scripts/setup_executorch.sh` only installs tooling
+- README export notes aligned to a foundation status
+- `scripts/setup_executorch.sh` installs tooling, builds the Qualcomm backend when `QNN_SDK_ROOT` is present, and stages planned model exports
+- runtime/artifact readiness checks
 
 What is missing:
 - checked-in `.pte` model artifacts or export pipeline outputs
 - Android ExecuTorch integration
 - Qualcomm QNN backend initialization in app runtime
 - model session loading and inference calls from the phone app
-- fallback/error handling for QNN load failures
+- production fallback/error handling for QNN load failures
 
 Why it matters:
 - The implementation currently runs HuggingFace PyTorch models in Python, not ExecuTorch on Snapdragon.
@@ -112,20 +124,18 @@ Why it matters:
 
 ## Important consistency gaps
 
-### README overclaims implementation status
+### README implementation status is now explicit
 
-The README currently says:
-- all models compile to ExecuTorch `.pte`
-- runs entirely on Hexagon NPU
-- all inference runs on Snapdragon 8 Elite NPU
+The README previously overclaimed that all models compile to ExecuTorch `.pte`,
+run entirely on Hexagon NPU, and execute all inference on Snapdragon 8 Elite.
+It now presents those pieces as the planned on-device foundation until artifacts
+and Android runtime wiring are checked in.
 
-The checked-in code does not implement those claims yet.
+### Setup script now points at the planned export path
 
-### Setup script points at the wrong export path
-
-`scripts/setup_executorch.sh` ends with a `llama.py` / `qwen2_5_vl_3b` export example, while the repo narrative is built around InternVL3.
-
-This needs one coherent export path for the actual model you will demo.
+`scripts/setup_executorch.sh` no longer ends with a `llama.py` /
+`qwen2_5_vl_3b` example. It stages the InternVL3 and Whisper export path for
+SM8750, but still needs a QNN SDK machine and device to produce real artifacts.
 
 ## Recommended implementation shape for the hackathon
 
@@ -195,7 +205,7 @@ Keep conceptually:
 - FAISS may remain if you can package it on Android, otherwise replace with a lighter retrieval approach.
 
 ### `scripts/setup_executorch.sh`
-- Needs to become a real export/build pipeline for the exact chosen model set.
+- Now matches the planned InternVL3 + Whisper + Piper asset story, but still depends on the QNN SDK and upstream ExecuTorch export support being available on the export machine.
 
 ## Fastest path to "truly on-device"
 

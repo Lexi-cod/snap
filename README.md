@@ -38,7 +38,7 @@ No cloud. No account. No data leaving your device. Ever.
 | Vector Search | FAISS `IndexFlatIP` — cosine similarity (threshold 0.3) |
 | Persistent Memory | SQLite3 |
 | Text-to-Speech | piper-tts `en_US-lessac-medium` + sounddevice |
-| NPU Backend | Qualcomm QNN via ExecuTorch 1.3 (target: SM8750) |
+| Planned NPU Backend | Qualcomm QNN via ExecuTorch 1.3 (target: SM8750) |
 | API Server | Flask + flask-cors + SSE streaming |
 | UI | Vanilla HTML/CSS/JS — mobile-first, camera + waveform |
 
@@ -106,8 +106,8 @@ wget -P ~/snapon/data/piper "$BASE/en_US-lessac-medium.onnx.json"
 > **InternVL3-1B** is downloaded automatically from HuggingFace on first startup
 > (~2 GB, cached in `~/.cache/huggingface`). The pre-loader runs in a background
 > thread so the server is responsive immediately; full model load takes ~60–90s
-> on CPU. This is the same model architecture exported to ExecuTorch for on-device
-> QNN inference on the Galaxy S25 Ultra.
+> on CPU. The on-device path is being built around the same model family, with
+> local `.pte` artifacts tracked by `models/artifact_manifest.json`.
 
 ---
 
@@ -186,29 +186,34 @@ curl -X DELETE http://localhost:8000/memories/1
 
 ---
 
-## On-device deployment (Samsung Galaxy S25 Ultra)
+## On-device deployment foundation (Samsung Galaxy S25 Ultra)
 
-All models compile to ExecuTorch `.pte` via Qualcomm QNN backend.
-Runs entirely on Hexagon NPU — zero cloud, zero internet.
+The checked-in app is still a desktop Python prototype. The on-device foundation
+now lives in:
+
+- `config/runtime_tasks.json` — task-by-task runtime matrix for QNN vs fallback
+- `models/artifact_manifest.json` — expected local `.pte`, tokenizer, and voice assets
+- `server/on_device_runtime.py` — callable runtime interface/stub for readiness and future bridge work
+- `android/runtime/SnapOnRuntimeContract.kt` — Kotlin interface for the future Android runtime bridge
+- `scripts/setup_executorch.sh` — ExecuTorch/QNN setup and export staging for SM8750
+
+Phone inference is considered ready only when required artifacts are present and
+validated by `python scripts/validate_runtime_config.py`.
 
 ### Model stack
 
-| Model | Job | .pte size W4A16 | Runtime |
+| Model | Job | Asset | Runtime |
 |---|---|---|---|
-| InternVL3-1B | Vision + text + compress + rerank | ~500 MB | NPU |
-| Whisper tiny | Speech to text | ~50 MB | NPU |
-| all-MiniLM-L6-v2 | Memory embeddings | ~30 MB | NPU |
-| PiperTTS | Text to speech | ~50 MB | CPU |
-| **Total** | | **~630 MB** | |
+| InternVL3-1B | Vision + text answering | `models/qnn/internvl3_1b_vlm.pte` | QNN / ExecuTorch |
+| InternVL3-1B text path | Memory embeddings | `models/qnn/internvl3_1b_text_embed.pte` | QNN / ExecuTorch |
+| Whisper tiny.en | Speech to text | `models/qnn/whisper_tiny_en.pte` | QNN / ExecuTorch, optional for MVP |
+| PiperTTS | Text to speech | `models/voice/en_US-lessac-medium.onnx` | Local CPU, optional |
 
 ### Why InternVL3-1B
 
-InternVL3-1B is an ExecuTorch-native model with first-class Qualcomm QNN support.
-The same HuggingFace checkpoint (`OpenGVLab/InternVL3-1B`) is used for both
-server-side prototyping and on-device NPU deployment — no architecture switch
-between dev and prod. It has full vision + text capability from training and
-answers visual questions without saved memories. The memory layer adds personal
-context on top — things no model can know: your name, your schedule, your people.
+InternVL3-1B is the planned shared model family for server-side prototyping and
+on-device VLM work. The memory layer adds personal context on top — things no
+model can know: your name, your schedule, your people.
 
 ### Export commands (run on-site with QNN SDK)
 
@@ -218,14 +223,7 @@ ExecuTorch repo: `github.com/pytorch/executorch`
 # Set SDK path
 export QNN_SDK_ROOT=/path/to/qairt/2.x.x.xxxxxxx
 
-# InternVL3-1B — native ExecuTorch/QNN export
-python examples/qualcomm/oss_scripts/internvl/internvl.py \
-  -b build-android -s <DEVICE_SERIAL> -m SM8750 \
-  --artifact ./internvl3_qnn
-
-# Whisper tiny
-python examples/qualcomm/oss_scripts/whisper.py \
-  -b build-android -s <DEVICE_SERIAL> -m SM8750
+DEVICE_SERIAL=<adb_serial> bash scripts/setup_executorch.sh
 ```
 
 Device target: SM8750 (Galaxy S25 Ultra — Snapdragon 8 Elite)
@@ -236,10 +234,10 @@ Device target: SM8750 (Galaxy S25 Ultra — Snapdragon 8 Elite)
 
 | Criterion | SnapOn |
 |-----------|--------|
-| **NPU Utilization** | All inference (VLM, Whisper, embeddings) runs on Snapdragon 8 Elite NPU via QNN backend — zero CPU/GPU offload for model inference |
+| **NPU Utilization** | Runtime matrix and artifact manifest define the QNN path for VLM, embeddings, and optional Whisper; current checked-in server remains a desktop fallback until artifacts/Android bridge land |
 | **Privacy** | Fully air-gapped — no network calls, no telemetry, all data stored locally in SQLite |
 | **Innovation** | Persistent cross-session visual memory with semantic retrieval (RAG on mobile) — ask about things you saw days ago |
-| **Performance** | INT4/INT8 quantized models via ExecuTorch; FAISS cosine search under 1 ms |
+| **Performance** | Planned INT4/INT8 QNN artifacts; FAISS cosine search remains the desktop prototype retrieval path |
 | **User Experience** | Voice in → spoken answer out; zero setup for end user |
 
 ---
