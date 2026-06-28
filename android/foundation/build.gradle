@@ -1,0 +1,13 @@
+plugins {
+    id "com.android.library"
+}
+
+android {
+    namespace "com.snapon.android.foundation"
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 26
+        consumerProguardFiles "consumer-rules.pro"
+    }
+}
