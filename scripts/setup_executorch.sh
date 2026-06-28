@@ -66,18 +66,24 @@ run_if_present() {
   fi
 }
 
-# Planned primary path: InternVL3-1B for visual Q&A and scene description.
+# Planned primary path: Qualcomm SmolVLM for visual Q&A and scene description.
 run_if_present \
-  examples/qualcomm/oss_scripts/internvl/internvl.py \
+  examples/qualcomm/oss_scripts/llama/llama.py \
   -b build-android \
   -s "$DEVICE_SERIAL" \
   -m "$TARGET_SOC" \
-  --artifact "$QNN_ARTIFACT_DIR/internvl3_1b_vlm"
+  --decoder_model smolvlm_500m_instruct \
+  --model_mode hybrid \
+  --prefill_ar_len 16 \
+  --max_seq_len 1024 \
+  --prompt "Can you describe this image?" \
+  --artifact "$QNN_ARTIFACT_DIR/smolvlm_500m_instruct" \
+  --compile_only
 
 # Planned STT path. Text input remains the fallback until this artifact is
 # exported and measured on-device.
 run_if_present \
-  examples/qualcomm/oss_scripts/whisper.py \
+  examples/qualcomm/oss_scripts/whisper/whisper.py \
   -b build-android \
   -s "$DEVICE_SERIAL" \
   -m "$TARGET_SOC" \
@@ -88,10 +94,11 @@ cat <<MSG
 ExecuTorch/QNN setup finished.
 
 Expected SnapOn asset locations:
-  $QNN_ARTIFACT_DIR/internvl3_1b_vlm.pte
-  $QNN_ARTIFACT_DIR/internvl3_1b_text_embed.pte
+  $QNN_ARTIFACT_DIR/smolvlm_500m_instruct/hybrid_llama_qnn.pte
+  $QNN_ARTIFACT_DIR/smolvlm_500m_instruct/vision_encoder_qnn.pte
+  $QNN_ARTIFACT_DIR/smolvlm_500m_instruct/tok_embedding_qnn.pte
   $QNN_ARTIFACT_DIR/whisper_tiny_en.pte
-  $TOKENIZER_DIR/internvl3_1b/
+  $QNN_ARTIFACT_DIR/smolvlm_500m_instruct/tokenizer*.json
   $TOKENIZER_DIR/whisper_tiny_en/
   $ARTIFACT_ROOT/voice/en_US-lessac-medium.onnx
   $ARTIFACT_ROOT/voice/en_US-lessac-medium.onnx.json

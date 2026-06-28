@@ -1,5 +1,7 @@
 package com.snapon.mobile.camera
 
+import android.graphics.Bitmap
+import java.io.ByteArrayOutputStream
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -40,5 +42,16 @@ class CameraPreviewController(
             },
             ContextCompat.getMainExecutor(previewView.context)
         )
+    }
+
+    fun captureCurrentFrameJpeg(): ByteArray? {
+        val bitmap = previewView.bitmap ?: return null
+        return bitmap.toScaledJpeg()
+    }
+
+    private fun Bitmap.toScaledJpeg(): ByteArray {
+        val out = ByteArrayOutputStream()
+        compress(Bitmap.CompressFormat.JPEG, 88, out)
+        return out.toByteArray()
     }
 }

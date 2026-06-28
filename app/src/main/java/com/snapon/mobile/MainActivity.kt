@@ -3,24 +3,33 @@ package com.snapon.mobile
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import androidx.lifecycle.lifecycleScope
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import com.snapon.mobile.audio.PushToTalkController
+import com.snapon.android.audio.AndroidPcmPushToTalkRecorder
+import com.snapon.android.audio.SnapOnAudioService
+import com.snapon.android.data.LocalMemoryRepository
 import com.snapon.mobile.camera.CameraPreviewController
-import com.snapon.mobile.data.InMemoryMemoryRepository
-import com.snapon.mobile.data.MemorySummary
-import com.snapon.mobile.inference.PlaceholderSnapOnInferenceEngine
-import com.snapon.mobile.inference.VisualQueryInput
+import com.snapon.mobile.runtime.PackagedSnapOnRuntime
+import com.snapon.mobile.runtime.RuntimeSpeechTranscriber
+import com.snapon.mobile.runtime.SilentSpokenResponsePlayer
 import com.snapon.mobile.ui.SnapOnShellView
+import com.snapon.mobile.workflow.SaveIntentParser
+import com.snapon.mobile.workflow.SnapOnOrchestrator
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 class MainActivity : ComponentActivity() {
     private lateinit var shellView: SnapOnShellView
     private lateinit var cameraPreviewController: CameraPreviewController
-    private lateinit var pushToTalkController: PushToTalkController
-
-    private val memories = InMemoryMemoryRepository()
-    private val inferenceEngine = PlaceholderSnapOnInferenceEngine()
+    private lateinit var memoryRepository: LocalMemoryRepository
+    private lateinit var runtime: PackagedSnapOnRuntime
+    private lateinit var audioService: SnapOnAudioService
+    private lateinit var orchestrator: SnapOnOrchestrator
 
     private val permissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
@@ -35,6 +44,15 @@ class MainActivity : ComponentActivity() {
         shellView = SnapOnShellView(this)
         setContentView(shellView.root)
 
+        memoryRepository = LocalMemoryRepository(applicationContext)
+        runtime = PackagedSnapOnRuntime(applicationContext)
+        audioService = SnapOnAudioService(
+            AndroidPcmPushToTalkRecorder(File(cacheDir, "audio")),
+            RuntimeSpeechTranscriber(runtime),
+            SilentSpokenResponsePlayer()
+        )
+        orchestrator = SnapOnOrchestrator(memoryRepository, runtime)
+
         cameraPreviewController = CameraPreviewController(
             lifecycleOwner = this,
             previewView = shellView.previewView,
@@ -45,20 +63,16 @@ class MainActivity : ComponentActivity() {
                 }
             }
         )
-        pushToTalkController = PushToTalkController(
-            onListeningChanged = { isListening ->
-                shellView.setListening(isListening)
-                shellView.showStatus(if (isListening) "Listening locally..." else "Ready")
-            }
-        )
 
-        shellView.onPushToTalkStart = pushToTalkController::start
-        shellView.onPushToTalkStop = pushToTalkController::stop
-        shellView.onAsk = { question -> answerQuestion(question) }
+        shellView.onPushToTalkStart = ::beginPushToTalk
+        shellView.onPushToTalkStop = ::finishPushToTalk
+        shellView.onAsk = { question -> handleUserText(question) }
         shellView.onMemories = { showMemories() }
 
         requestRuntimePermissions()
+        shellView.setMemoryCount(orchestrator.memoryCount())
         shellView.showAnswer("Point the camera, press the mic, and ask what to remember.")
+        shellView.showStatus(runtime.runtimeStatusText())
     }
 
     private fun requestRuntimePermissions() {
@@ -84,7 +98,7 @@ class MainActivity : ComponentActivity() {
         if (!audioGranted) {
             shellView.showStatus("Mic permission missing; typed questions still work.")
         } else {
-            shellView.showStatus("On-device shell ready")
+            shellView.showStatus(runtime.runtimeStatusText())
         }
     }
 
@@ -92,44 +106,100 @@ class MainActivity : ComponentActivity() {
         return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun answerQuestion(question: String) {
+    private fun beginPushToTalk() {
+        lifecycleScope.launch {
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    audioService.beginPushToTalk()
+                }
+            }.onSuccess {
+                shellView.setListening(true)
+                shellView.showStatus("Recording locally...")
+            }.onFailure {
+                shellView.setListening(false)
+                shellView.showStatus("Microphone capture failed: ${it.message}")
+            }
+        }
+    }
+
+    private fun finishPushToTalk() {
+        if (!audioService.isListening) {
+            shellView.setListening(false)
+            return
+        }
+
+        lifecycleScope.launch {
+            shellView.showStatus("Transcribing on device...")
+            val transcript = runCatching {
+                withContext(Dispatchers.IO) {
+                    audioService.finishPushToTalk()
+                }
+            }
+            shellView.setListening(false)
+            transcript.onSuccess { text ->
+                shellView.setQuestion(text)
+                handleUserText(text)
+            }.onFailure {
+                shellView.showStatus(it.message ?: "Speech transcription unavailable; use typed input.")
+            }
+        }
+    }
+
+    private fun handleUserText(question: String) {
         val cleanQuestion = question.trim()
         if (cleanQuestion.isEmpty()) {
             shellView.showStatus("Ask a question first")
             return
         }
 
-        shellView.showStatus("Running local placeholder inference")
-        val result = inferenceEngine.answer(
-            VisualQueryInput(
-                question = cleanQuestion,
-                memoryContext = memories.recentMemories(limit = 4)
-            )
-        )
+        lifecycleScope.launch {
+            shellView.showStatus("Running local query flow...")
+            val imageBytes = cameraPreviewController.captureCurrentFrameJpeg()
+            val shouldPersistFrame = SaveIntentParser.isSaveIntent(cleanQuestion)
+            val imageUri = if (shouldPersistFrame) {
+                withContext(Dispatchers.IO) {
+                    persistFrame(imageBytes)
+                }
+            } else {
+                null
+            }
+            val result = runCatching {
+                withContext(Dispatchers.IO) {
+                    orchestrator.handleTextInput(cleanQuestion, imageBytes, imageUri)
+                }
+            }
 
-        shellView.showAnswer(result.answer)
-        memories.remember(
-            MemorySummary(
-                title = "Visual question",
-                detail = cleanQuestion,
-                tag = "demo"
-            )
-        )
-        shellView.setMemoryCount(memories.count())
-        shellView.showStatus(result.status)
+            result.onSuccess { flow ->
+                shellView.showAnswer(flow.answer)
+                shellView.setMemoryCount(flow.memoryCount)
+                shellView.showStatus(flow.status)
+            }.onFailure {
+                shellView.showStatus("Local flow failed: ${it.message}")
+            }
+        }
     }
 
     private fun showMemories() {
-        val recent = memories.recentMemories(limit = 3)
-        val text = if (recent.isEmpty()) {
-            "No memories saved yet."
-        } else {
-            recent.joinToString(separator = "\n\n") { memory ->
-                "${memory.title}\n${memory.detail}"
-            }
-        }
-
-        shellView.showAnswer(text)
+        shellView.showAnswer(orchestrator.memoryPreview())
         shellView.showStatus("Local memory preview")
+    }
+
+    private fun persistFrame(imageBytes: ByteArray?): String? {
+        if (imageBytes == null) return null
+        val imagesDir = File(filesDir, "memories/images")
+        if (!imagesDir.exists()) {
+            imagesDir.mkdirs()
+        }
+        val file = File(imagesDir, "memory-${System.currentTimeMillis()}.jpg")
+        FileOutputStream(file).use { out ->
+            out.write(imageBytes)
+        }
+        return file.absolutePath
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        runCatching { memoryRepository.close() }
+        runCatching { audioService.stopSpeaking() }
     }
 }

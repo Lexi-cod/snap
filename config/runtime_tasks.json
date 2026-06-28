@@ -11,31 +11,41 @@
       "id": "visual_question_answering",
       "label": "Visual question answering",
       "primary_runtime": "executorch_qnn",
-      "fallback_runtime": "desktop_python_internvl3",
-      "model_artifacts": ["internvl3_1b_vlm_pte", "internvl3_tokenizer"],
+      "fallback_runtime": "desktop_python_smolvlm",
+      "model_artifacts": [
+        "smolvlm_vision_encoder_pte",
+        "smolvlm_tok_embedding_pte",
+        "smolvlm_decoder_pte",
+        "smolvlm_tokenizer"
+      ],
       "required_for_phone_demo": true,
       "status": "artifact_required",
-      "notes": "Android should call the VLM runtime directly with camera frames and text prompts. The Flask/Python path is development-only."
+      "notes": "Android should call the Qualcomm SmolVLM runtime directly with camera frames and text prompts. The Flask/Python path is development-only."
     },
     {
       "id": "scene_description",
       "label": "Scene description",
       "primary_runtime": "executorch_qnn",
-      "fallback_runtime": "desktop_python_internvl3",
-      "model_artifacts": ["internvl3_1b_vlm_pte", "internvl3_tokenizer"],
+      "fallback_runtime": "desktop_python_smolvlm",
+      "model_artifacts": [
+        "smolvlm_vision_encoder_pte",
+        "smolvlm_tok_embedding_pte",
+        "smolvlm_decoder_pte",
+        "smolvlm_tokenizer"
+      ],
       "required_for_phone_demo": true,
       "status": "artifact_required",
-      "notes": "Uses the same VLM artifact as visual question answering."
+      "notes": "Uses the same Qualcomm SmolVLM artifact set as visual question answering."
     },
     {
       "id": "memory_text_embedding",
       "label": "Memory text embeddings",
-      "primary_runtime": "executorch_qnn",
-      "fallback_runtime": "desktop_python_internvl3",
-      "model_artifacts": ["internvl3_1b_text_embed_pte", "internvl3_tokenizer"],
-      "required_for_phone_demo": true,
-      "status": "artifact_required",
-      "notes": "Planned to use the InternVL3/Qwen hidden-state embedding path currently prototyped in Python."
+      "primary_runtime": "local_cpu_hash_embedding",
+      "fallback_runtime": "sqlite_keyword_search",
+      "model_artifacts": [],
+      "required_for_phone_demo": false,
+      "status": "local_fallback",
+      "notes": "SmolVLM does not currently replace the previous InternVL-specific embedding export path. Save/retrieval should stay local and lightweight until a separate Qualcomm-friendly embedding model is chosen."
     },
     {
       "id": "speech_to_text",

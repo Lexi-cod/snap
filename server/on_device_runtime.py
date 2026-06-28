@@ -81,5 +81,6 @@ class ExecuTorchQnnRuntime(SnapOnRuntime):
         return None
 
     def embed_text(self, text: str) -> list[float]:
-        self._require_ready("memory_text_embedding")
-        raise NotImplementedError("ExecuTorch/QNN embedding invocation is not wired yet")
+        raise NotImplementedError(
+            "Memory embeddings are currently expected to use a separate local fallback, not the Qualcomm SmolVLM path"
+        )

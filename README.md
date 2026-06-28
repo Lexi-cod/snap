@@ -204,16 +204,18 @@ validated by `python scripts/validate_runtime_config.py`.
 
 | Model | Job | Asset | Runtime |
 |---|---|---|---|
-| InternVL3-1B | Vision + text answering | `models/qnn/internvl3_1b_vlm.pte` | QNN / ExecuTorch |
-| InternVL3-1B text path | Memory embeddings | `models/qnn/internvl3_1b_text_embed.pte` | QNN / ExecuTorch |
+| SmolVLM-500M-Instruct | Vision encoder | `models/qnn/vision_encoder_qnn.pte` | QNN / ExecuTorch |
+| SmolVLM-500M-Instruct | Token embedding | `models/qnn/tok_embedding_qnn.pte` | QNN / ExecuTorch |
+| SmolVLM-500M-Instruct | Text decoder | `models/qnn/hybrid_llama_qnn.pte` | QNN / ExecuTorch |
 | Whisper tiny.en | Speech to text | `models/qnn/whisper_tiny_en.pte` | QNN / ExecuTorch, optional for MVP |
 | PiperTTS | Text to speech | `models/voice/en_US-lessac-medium.onnx` | Local CPU, optional |
 
-### Why InternVL3-1B
+### Why SmolVLM-500M-Instruct
 
-InternVL3-1B is the planned shared model family for server-side prototyping and
-on-device VLM work. The memory layer adds personal context on top — things no
-model can know: your name, your schedule, your people.
+SmolVLM-500M-Instruct is the active Qualcomm/ExecuTorch path for the on-device
+VLM demo because Qualcomm already wires it through the `llama.py` multimodal
+export flow. Personal memory stays as a lightweight local layer on top until a
+separate Qualcomm-friendly embedding model is selected.
 
 ### Export commands (run on-site with QNN SDK)
 

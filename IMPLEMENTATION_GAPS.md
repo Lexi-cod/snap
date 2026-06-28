@@ -17,7 +17,7 @@ Right now it is a desktop-hosted Python + Flask prototype with a browser UI.
 - `server/runtime_config.py` validates runtime configuration and reports missing artifacts.
 - `server/on_device_runtime.py` adds the callable runtime boundary the Android/JNI implementation should satisfy later.
 - `android/runtime/SnapOnRuntimeContract.kt` adds a Kotlin-side runtime contract for the future Android app.
-- `scripts/setup_executorch.sh` now stages the planned InternVL3/Whisper/QNN asset flow for SM8750 instead of pointing at an unrelated Llama/Qwen export example.
+- `scripts/setup_executorch.sh` now stages the planned SmolVLM/Whisper/QNN asset flow for SM8750 using Qualcomm's multimodal `llama.py` exporter.
 
 This does not yet make the product path phone-native. It makes the missing runtime assets and integration boundary explicit.
 
@@ -92,8 +92,8 @@ Why it matters:
 ### 5. Model stack does not match the actual deployment story yet
 
 Current implementation:
-- README says InternVL3-1B, Whisper, FAISS, Piper, QNN
-- code actually uses InternVL3, faster-whisper, CLIP, Piper, FAISS in Python
+- README says SmolVLM-500M-Instruct, Whisper, FAISS, Piper, QNN
+- code still uses desktop Python models and host-side retrieval in the prototype path
 
 What is missing:
 - a verified set of models that all export and run on the S25 target
@@ -134,7 +134,7 @@ and Android runtime wiring are checked in.
 ### Setup script now points at the planned export path
 
 `scripts/setup_executorch.sh` no longer ends with a `llama.py` /
-`qwen2_5_vl_3b` example. It stages the InternVL3 and Whisper export path for
+`qwen2_5_vl_3b` example. It stages the SmolVLM and Whisper export path for
 SM8750, but still needs a QNN SDK machine and device to produce real artifacts.
 
 ## Recommended implementation shape for the hackathon
@@ -205,7 +205,7 @@ Keep conceptually:
 - FAISS may remain if you can package it on Android, otherwise replace with a lighter retrieval approach.
 
 ### `scripts/setup_executorch.sh`
-- Now matches the planned InternVL3 + Whisper + Piper asset story, but still depends on the QNN SDK and upstream ExecuTorch export support being available on the export machine.
+- Now matches the planned SmolVLM + Whisper + Piper asset story, but still depends on the QNN SDK and upstream ExecuTorch export support being available on the export machine.
 
 ## Fastest path to "truly on-device"
 

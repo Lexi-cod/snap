@@ -6,6 +6,7 @@ __pycache__/
 *.egg-info/
 .eggs/
 .venv/
+.venv-export/
 venv/
 .env
 .env.*
@@ -25,3 +26,4 @@ local.properties
 captures/
 *.apk
 *.aab
+.rocketride/

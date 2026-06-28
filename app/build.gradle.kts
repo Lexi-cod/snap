@@ -23,6 +23,13 @@ android {
     kotlinOptions {
         jvmTarget = "1.8"
     }
+
+    sourceSets {
+        getByName("main") {
+            assets.srcDirs("../config", "../models")
+            java.srcDir("../android/runtime")
+        }
+    }
 }
 
 dependencies {
@@ -44,4 +51,5 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraXVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
     implementation("androidx.camera:camera-view:$cameraXVersion")
+    implementation(project(":android-foundation"))
 }

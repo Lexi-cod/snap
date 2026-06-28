@@ -180,6 +180,11 @@ class SnapOnShellView(context: Context) {
         answerText.text = message
     }
 
+    fun setQuestion(text: String) {
+        questionInput.setText(text)
+        questionInput.setSelection(questionInput.text.length)
+    }
+
     fun showCameraPlaceholder(message: String) {
         cameraPlaceholder.text = message
         cameraPlaceholder.visibility = View.VISIBLE

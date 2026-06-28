@@ -5,34 +5,44 @@
   "target_device": "SM8750",
   "artifacts": [
     {
-      "id": "internvl3_1b_vlm_pte",
+      "id": "smolvlm_vision_encoder_pte",
       "task": "visual_question_answering",
       "runtime": "executorch_qnn",
-      "path": "models/qnn/internvl3_1b_vlm.pte",
+      "path": "models/qnn/vision_encoder_qnn.pte",
       "required": true,
       "sha256": "TODO",
-      "source": "OpenGVLab/InternVL3-1B",
-      "notes": "Primary VLM artifact for image + text prompts."
+      "source": "HuggingFaceTB/SmolVLM-500M-Instruct",
+      "notes": "Qualcomm SmolVLM vision encoder artifact exported by llama.py."
     },
     {
-      "id": "internvl3_1b_text_embed_pte",
-      "task": "memory_text_embedding",
+      "id": "smolvlm_tok_embedding_pte",
+      "task": "visual_question_answering",
       "runtime": "executorch_qnn",
-      "path": "models/qnn/internvl3_1b_text_embed.pte",
+      "path": "models/qnn/tok_embedding_qnn.pte",
       "required": true,
       "sha256": "TODO",
-      "source": "OpenGVLab/InternVL3-1B",
-      "notes": "Embedding/export surface for the Qwen hidden-state mean-pool path."
+      "source": "HuggingFaceTB/SmolVLM-500M-Instruct",
+      "notes": "Qualcomm SmolVLM token-embedding artifact required by the multimodal runner."
     },
     {
-      "id": "internvl3_tokenizer",
+      "id": "smolvlm_decoder_pte",
+      "task": "visual_question_answering",
+      "runtime": "executorch_qnn",
+      "path": "models/qnn/hybrid_llama_qnn.pte",
+      "required": true,
+      "sha256": "TODO",
+      "source": "HuggingFaceTB/SmolVLM-500M-Instruct",
+      "notes": "Qualcomm SmolVLM hybrid decoder artifact for text generation."
+    },
+    {
+      "id": "smolvlm_tokenizer",
       "task": "tokenization",
       "runtime": "local_cpu",
-      "path": "models/tokenizers/internvl3_1b",
+      "path": "models/tokenizers/smolvlm_500m_instruct",
       "required": true,
       "sha256": "TODO",
-      "source": "OpenGVLab/InternVL3-1B",
-      "notes": "Tokenizer/config directory copied from the export cache."
+      "source": "HuggingFaceTB/SmolVLM-500M-Instruct",
+      "notes": "Tokenizer/config bundle copied from the Qualcomm export artifact directory."
     },
     {
       "id": "whisper_tiny_en_pte",
