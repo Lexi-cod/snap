@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "artifact_root": "models",
+  "generated_by": "scripts/setup_executorch.sh",
+  "target_device": "SM8750",
+  "artifacts": [
+    {
+      "id": "internvl3_1b_vlm_pte",
+      "task": "visual_question_answering",
+      "runtime": "executorch_qnn",
+      "path": "models/qnn/internvl3_1b_vlm.pte",
+      "required": true,
+      "sha256": "TODO",
+      "source": "OpenGVLab/InternVL3-1B",
+      "notes": "Primary VLM artifact for image + text prompts."
+    },
+    {
+      "id": "internvl3_1b_text_embed_pte",
+      "task": "memory_text_embedding",
+      "runtime": "executorch_qnn",
+      "path": "models/qnn/internvl3_1b_text_embed.pte",
+      "required": true,
+      "sha256": "TODO",
+      "source": "OpenGVLab/InternVL3-1B",
+      "notes": "Embedding/export surface for the Qwen hidden-state mean-pool path."
+    },
+    {
+      "id": "internvl3_tokenizer",
+      "task": "tokenization",
+      "runtime": "local_cpu",
+      "path": "models/tokenizers/internvl3_1b",
+      "required": true,
+      "sha256": "TODO",
+      "source": "OpenGVLab/InternVL3-1B",
+      "notes": "Tokenizer/config directory copied from the export cache."
+    },
+    {
+      "id": "whisper_tiny_en_pte",
+      "task": "speech_to_text",
+      "runtime": "executorch_qnn",
+      "path": "models/qnn/whisper_tiny_en.pte",
+      "required": false,
+      "sha256": "TODO",
+      "source": "openai/whisper-tiny.en",
+      "notes": "Optional for MVP if text input is used as the local fallback."
+    },
+    {
+      "id": "whisper_tokenizer",
+      "task": "speech_to_text",
+      "runtime": "local_cpu",
+      "path": "models/tokenizers/whisper_tiny_en",
+      "required": false,
+      "sha256": "TODO",
+      "source": "openai/whisper-tiny.en",
+      "notes": "Tokenizer/config files needed by the STT runtime."
+    },
+    {
+      "id": "piper_lessac_medium_onnx",
+      "task": "text_to_speech",
+      "runtime": "local_cpu_piper",
+      "path": "models/voice/en_US-lessac-medium.onnx",
+      "required": false,
+      "sha256": "TODO",
+      "source": "rhasspy/piper-voices",
+      "notes": "Optional spoken-output voice model."
+    },
+    {
+      "id": "piper_lessac_medium_config",
+      "task": "text_to_speech",
+      "runtime": "local_cpu_piper",
+      "path": "models/voice/en_US-lessac-medium.onnx.json",
+      "required": false,
+      "sha256": "TODO",
+      "source": "rhasspy/piper-voices",
+      "notes": "Piper voice metadata next to the ONNX voice."
+    }
+  ]
+}
