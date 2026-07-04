@@ -6,6 +6,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -16,18 +18,24 @@ public final class LocalMemoryRepository implements MemoryRepository {
 
     private final SnapOnDatabaseHelper databaseHelper;
     private final TimeSource timeSource;
+    private final TextEmbedder embedder;
 
-    public LocalMemoryRepository(Context context) {
-        this(context, System::currentTimeMillis);
+    public LocalMemoryRepository(Context context, TextEmbedder embedder) {
+        this(context, System::currentTimeMillis, embedder);
     }
 
-    LocalMemoryRepository(Context context, TimeSource timeSource) {
+    LocalMemoryRepository(Context context, TimeSource timeSource, TextEmbedder embedder) {
         this.databaseHelper = new SnapOnDatabaseHelper(context.getApplicationContext());
         this.timeSource = timeSource;
+        this.embedder = embedder;
     }
 
     @Override
     public Memory save(MemoryDraft draft) throws IOException {
+        // Computed outside the transaction (calls into the on-device embedding
+        // model) so the write lock is held for as short a time as possible.
+        float[] embedding = embedder.embed(storedText(draft));
+
         SQLiteDatabase db = databaseHelper.getWritableDatabase();
         db.beginTransaction();
         try {
@@ -47,6 +55,7 @@ public final class LocalMemoryRepository implements MemoryRepository {
             values.put("access_count", 0);
             values.put("image_uri", draft.getImageUri());
             values.put("image_description", draft.getImageDescription());
+            values.put("embedding", embedding.length == 0 ? null : serializeEmbedding(embedding));
             long id = db.insertOrThrow(SnapOnDatabaseHelper.TABLE_MEMORIES, null, values);
             db.setTransactionSuccessful();
             return getLocked(db, id);
@@ -97,6 +106,11 @@ public final class LocalMemoryRepository implements MemoryRepository {
     public List<Memory> retrieve(String query, int limit) {
         int safeLimit = Math.max(1, limit);
         SQLiteDatabase db = databaseHelper.getWritableDatabase();
+        // Semantic similarity (cosine, over mean-pooled on-device embeddings) is the
+        // primary signal; keyword scoring is only a per-row fallback for memories
+        // saved before embeddings existed, or if embedding the query itself fails.
+        float[] queryEmbedding = embedder.embed(query);
+        double similarityThreshold = loadSettingsLocked(db).getSimilarityThreshold();
         List<ScoredMemory> scored = new ArrayList<>();
 
         try (Cursor cursor = db.query(
@@ -110,8 +124,19 @@ public final class LocalMemoryRepository implements MemoryRepository {
         )) {
             while (cursor.moveToNext()) {
                 Memory memory = readMemory(cursor);
-                double score = MemorySearch.keywordScore(query, searchText(memory));
-                if (score >= KEYWORD_THRESHOLD) {
+                byte[] embeddingBlob = cursor.getBlob(cursor.getColumnIndexOrThrow("embedding"));
+                float[] storedEmbedding = embeddingBlob == null ? new float[0] : deserializeEmbedding(embeddingBlob);
+
+                double score;
+                double threshold;
+                if (queryEmbedding.length > 0 && storedEmbedding.length > 0) {
+                    score = cosineSimilarity(queryEmbedding, storedEmbedding);
+                    threshold = similarityThreshold;
+                } else {
+                    score = MemorySearch.keywordScore(query, searchText(memory));
+                    threshold = KEYWORD_THRESHOLD;
+                }
+                if (score >= threshold) {
                     scored.add(new ScoredMemory(memory, score));
                 }
             }
@@ -160,6 +185,41 @@ public final class LocalMemoryRepository implements MemoryRepository {
     @Override
     public void close() {
         databaseHelper.close();
+    }
+
+    private static byte[] serializeEmbedding(float[] embedding) {
+        ByteBuffer buffer = ByteBuffer.allocate(embedding.length * 4).order(ByteOrder.LITTLE_ENDIAN);
+        for (float value : embedding) {
+            buffer.putFloat(value);
+        }
+        return buffer.array();
+    }
+
+    private static float[] deserializeEmbedding(byte[] blob) {
+        ByteBuffer buffer = ByteBuffer.wrap(blob).order(ByteOrder.LITTLE_ENDIAN);
+        float[] embedding = new float[blob.length / 4];
+        for (int i = 0; i < embedding.length; i++) {
+            embedding[i] = buffer.getFloat();
+        }
+        return embedding;
+    }
+
+    private static double cosineSimilarity(float[] a, float[] b) {
+        if (a.length != b.length || a.length == 0) {
+            return 0.0;
+        }
+        double dot = 0.0;
+        double normA = 0.0;
+        double normB = 0.0;
+        for (int i = 0; i < a.length; i++) {
+            dot += a[i] * b[i];
+            normA += a[i] * a[i];
+            normB += b[i] * b[i];
+        }
+        if (normA <= 0.0 || normB <= 0.0) {
+            return 0.0;
+        }
+        return dot / (Math.sqrt(normA) * Math.sqrt(normB));
     }
 
     private static String storedText(MemoryDraft draft) {

@@ -50,22 +50,22 @@
     {
       "id": "speech_to_text",
       "label": "Speech to text",
-      "primary_runtime": "executorch_qnn",
+      "primary_runtime": "executorch_xnnpack",
       "fallback_runtime": "desktop_python_faster_whisper",
       "model_artifacts": ["whisper_tiny_en_pte", "whisper_tokenizer"],
       "required_for_phone_demo": false,
-      "status": "artifact_required",
-      "notes": "Push-to-talk should use this runtime when the Whisper QNN artifact is present. Text input remains the safe local fallback."
+      "status": "implemented",
+      "notes": "Push-to-talk runs whisper-tiny.en locally via WhisperEngine.kt (ExecuTorch XNNPACK, int8). Text input remains the local fallback if the artifact is ever missing. QNN/Hexagon export not yet done — runs on CPU today."
     },
     {
       "id": "text_to_speech",
       "label": "Text to speech",
-      "primary_runtime": "local_cpu_piper",
+      "primary_runtime": "android_system_tts",
       "fallback_runtime": "android_text_output",
-      "model_artifacts": ["piper_lessac_medium_onnx", "piper_lessac_medium_config"],
+      "model_artifacts": [],
       "required_for_phone_demo": false,
-      "status": "optional_asset",
-      "notes": "Piper is CPU/local audio, not QNN. Spoken output is optional; text response must always work."
+      "status": "implemented",
+      "notes": "Uses android.speech.tts.TextToSpeech (AndroidSystemSpokenResponsePlayer.kt) instead of Piper: real Piper needs espeak-ng for text-to-phoneme conversion, which means cross-compiling and JNI-bridging a native C library for Android — out of scope for now. Still fully on-device/offline once the system voice pack is installed. Piper's ONNX voice model (piper_lessac_medium_onnx/_config) stays in the manifest as an unused artifact for a possible future custom-voice upgrade. Spoken output is optional; text response must always work."
     },
     {
       "id": "visual_similarity",

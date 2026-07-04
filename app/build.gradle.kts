@@ -52,4 +52,12 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
     implementation("androidx.camera:camera-view:$cameraXVersion")
     implementation(project(":android-foundation"))
+
+    // ExecuTorch on-device runtime (XNNPACK CPU backend). Version must match
+    // the executorch pip package used to produce models/xnnpack/*.pte
+    // (currently 1.3.1) — mismatched runtime/artifact versions can fail to
+    // load or silently misbehave. Verify this resolves against Maven Central
+    // when building; if 1.3.1 isn't published, use the closest available
+    // release and re-check compatibility.
+    implementation("org.pytorch:executorch-android:1.3.1")
 }

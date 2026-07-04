@@ -50,4 +50,8 @@ public final class SnapOnAudioService {
     public void stopSpeaking() {
         spokenResponsePlayer.stop();
     }
+
+    public void close() throws IOException {
+        spokenResponsePlayer.close();
+    }
 }

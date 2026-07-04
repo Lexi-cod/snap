@@ -18,6 +18,8 @@ venv/
 data/pte/
 data/piper/
 
+models/xnnpack/_fp32_backup/
+
 # Android / Gradle
 .gradle/
 build/

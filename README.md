@@ -202,13 +202,22 @@ validated by `python scripts/validate_runtime_config.py`.
 
 ### Model stack
 
+Implemented and running today (ExecuTorch XNNPACK, CPU, int8-quantized):
+
 | Model | Job | Asset | Runtime |
 |---|---|---|---|
-| SmolVLM-500M-Instruct | Vision encoder | `models/qnn/vision_encoder_qnn.pte` | QNN / ExecuTorch |
-| SmolVLM-500M-Instruct | Token embedding | `models/qnn/tok_embedding_qnn.pte` | QNN / ExecuTorch |
-| SmolVLM-500M-Instruct | Text decoder | `models/qnn/hybrid_llama_qnn.pte` | QNN / ExecuTorch |
-| Whisper tiny.en | Speech to text | `models/qnn/whisper_tiny_en.pte` | QNN / ExecuTorch, optional for MVP |
-| PiperTTS | Text to speech | `models/voice/en_US-lessac-medium.onnx` | Local CPU, optional |
+| SmolVLM-500M-Instruct | Vision encoder | `models/xnnpack/vision_encoder.pte` (96.8MB, int8) | ExecuTorch XNNPACK |
+| SmolVLM-500M-Instruct | Token embedding | `models/xnnpack/tok_embedding.pte` (189MB, fp32) | ExecuTorch XNNPACK |
+| SmolVLM-500M-Instruct | Text decoder | `models/xnnpack/smolvlm_decoder.pte` (347MB, int8) | ExecuTorch XNNPACK |
+| Whisper tiny.en | Speech to text | `models/xnnpack/whisper_tiny_en.pte` (176MB, int8) | ExecuTorch XNNPACK |
+| Android system voice | Text to speech | n/a (OS-provided) | `android.speech.tts.TextToSpeech` |
+
+Planned upgrade path, not yet done:
+
+| Item | Status |
+|---|---|
+| Hexagon NPU (QNN) build of the above models | `scripts/export_smolvlm_qnn.py` exists but has never been run — needs a QNN SDK machine + device |
+| Piper neural TTS voice | `models/voice/en_US-lessac-medium.onnx` ships but is unused — needs espeak-ng cross-compiled + JNI-bridged for Android to do text-to-phoneme conversion |
 
 ### Why SmolVLM-500M-Instruct
 

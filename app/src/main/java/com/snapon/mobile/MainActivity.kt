@@ -11,9 +11,10 @@ import com.snapon.android.audio.AndroidPcmPushToTalkRecorder
 import com.snapon.android.audio.SnapOnAudioService
 import com.snapon.android.data.LocalMemoryRepository
 import com.snapon.mobile.camera.CameraPreviewController
+import com.snapon.mobile.runtime.AndroidSystemSpokenResponsePlayer
 import com.snapon.mobile.runtime.PackagedSnapOnRuntime
 import com.snapon.mobile.runtime.RuntimeSpeechTranscriber
-import com.snapon.mobile.runtime.SilentSpokenResponsePlayer
+import com.snapon.mobile.runtime.RuntimeTextEmbedder
 import com.snapon.mobile.ui.SnapOnShellView
 import com.snapon.mobile.workflow.SaveIntentParser
 import com.snapon.mobile.workflow.SnapOnOrchestrator
@@ -44,12 +45,12 @@ class MainActivity : ComponentActivity() {
         shellView = SnapOnShellView(this)
         setContentView(shellView.root)
 
-        memoryRepository = LocalMemoryRepository(applicationContext)
         runtime = PackagedSnapOnRuntime(applicationContext)
+        memoryRepository = LocalMemoryRepository(applicationContext, RuntimeTextEmbedder(runtime))
         audioService = SnapOnAudioService(
             AndroidPcmPushToTalkRecorder(File(cacheDir, "audio")),
             RuntimeSpeechTranscriber(runtime),
-            SilentSpokenResponsePlayer()
+            AndroidSystemSpokenResponsePlayer(applicationContext)
         )
         orchestrator = SnapOnOrchestrator(memoryRepository, runtime)
 
@@ -173,6 +174,7 @@ class MainActivity : ComponentActivity() {
                 shellView.showAnswer(flow.answer)
                 shellView.setMemoryCount(flow.memoryCount)
                 shellView.showStatus(flow.status)
+                runCatching { audioService.speak(flow.answer) }
             }.onFailure {
                 shellView.showStatus("Local flow failed: ${it.message}")
             }
@@ -200,6 +202,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         runCatching { memoryRepository.close() }
-        runCatching { audioService.stopSpeaking() }
+        runCatching { audioService.close() }
     }
 }

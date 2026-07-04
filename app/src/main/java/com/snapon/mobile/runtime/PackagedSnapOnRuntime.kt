@@ -14,10 +14,15 @@ import java.io.IOException
 import kotlin.math.min
 
 class PackagedSnapOnRuntime(
-    context: Context
+    private val context: Context
 ) : SnapOnRuntime {
     private val assets: AssetManager = context.assets
     private val manifest by lazy { JSONObject(assets.open("artifact_manifest.json").bufferedReader().use { it.readText() }) }
+
+    // Lazy: only loads the .pte files into ExecuTorch Modules on first real
+    // use, not at PackagedSnapOnRuntime construction time.
+    private val engine: SmolVlmEngine by lazy { SmolVlmEngine(context) }
+    private val whisperEngine: WhisperEngine by lazy { WhisperEngine(context) }
 
     override fun readiness(): RuntimeReadiness {
         val artifacts = artifactStatuses()
@@ -40,10 +45,18 @@ class PackagedSnapOnRuntime(
             )
         }
 
-        return VisualQuestionResponse(
-            answer = "Runtime artifacts are packaged, but the native ExecuTorch/QNN bridge is not linked yet.",
-            backend = RuntimeBackend.LOCAL_CPU
-        )
+        return try {
+            val answer = engine.answer(request.question, request.imageJpeg)
+            VisualQuestionResponse(
+                answer = answer.ifBlank { fallbackAnswer(request) },
+                backend = RuntimeBackend.LOCAL_CPU
+            )
+        } catch (e: Exception) {
+            VisualQuestionResponse(
+                answer = "On-device model failed: ${e.message}\n\n${fallbackAnswer(request)}",
+                backend = RuntimeBackend.FALLBACK_TEXT_ONLY
+            )
+        }
     }
 
     override suspend fun transcribe(audioPcm16: ByteArray): String {
@@ -51,7 +64,11 @@ class PackagedSnapOnRuntime(
         if (!readiness.artifacts.any { it.id == "whisper_tiny_en_pte" && it.present }) {
             throw IOException("Speech-to-text artifact is not packaged yet. Use typed input for now.")
         }
-        throw IOException("Speech runtime artifacts are packaged, but the native transcription bridge is not linked yet.")
+        val text = whisperEngine.transcribe(audioPcm16)
+        if (text.isBlank()) {
+            throw IOException("Could not transcribe that clip; try again or use typed input.")
+        }
+        return text
     }
 
     override suspend fun synthesize(text: String): ByteArray? {
@@ -59,12 +76,12 @@ class PackagedSnapOnRuntime(
     }
 
     override suspend fun embedText(text: String): FloatArray {
-        val tokens = text.lowercase().split(Regex("\\W+")).filter { it.isNotBlank() }
-        val values = FloatArray(8)
-        tokens.forEachIndexed { index, token ->
-            values[index % values.size] += token.hashCode().toFloat()
+        if (text.isBlank()) return FloatArray(0)
+        return try {
+            engine.embed(text)
+        } catch (e: Exception) {
+            FloatArray(0)
         }
-        return values
     }
 
     fun runtimeStatusText(): String {

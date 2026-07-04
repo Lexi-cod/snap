@@ -6,7 +6,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 final class SnapOnDatabaseHelper extends SQLiteOpenHelper {
     static final String DATABASE_NAME = "snapon_memory.db";
-    static final int DATABASE_VERSION = 1;
+    static final int DATABASE_VERSION = 2;
 
     static final String TABLE_MEMORIES = "memories";
     static final String TABLE_SETTINGS = "settings";
@@ -25,7 +25,8 @@ final class SnapOnDatabaseHelper extends SQLiteOpenHelper {
                         + "created_at_epoch_millis INTEGER NOT NULL,"
                         + "access_count INTEGER NOT NULL DEFAULT 0,"
                         + "image_uri TEXT,"
-                        + "image_description TEXT"
+                        + "image_description TEXT,"
+                        + "embedding BLOB"
                         + ")"
         );
         db.execSQL(
@@ -44,6 +45,10 @@ final class SnapOnDatabaseHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         if (oldVersion < 1) {
             onCreate(db);
+            return;
+        }
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE " + TABLE_MEMORIES + " ADD COLUMN embedding BLOB");
         }
     }
 }
