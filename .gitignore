@@ -17,6 +17,7 @@ venv/
 *.log
 data/pte/
 data/piper/
+.claude/
 
 models/xnnpack/_fp32_backup/
 
