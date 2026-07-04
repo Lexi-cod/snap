@@ -31,6 +31,292 @@
       -webkit-user-select: none;
     }
 
+    /* ── Welcome Screen ─────────────────────────────────────────────────────── */
+    #welcome-screen {
+      position: fixed; inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
+    }
+    #welcome-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Animated gradient background */
+    .welcome-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.45), transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(37,99,235,0.35), transparent 55%),
+        radial-gradient(ellipse at 50% 50%, rgba(167,139,250,0.15), transparent 65%),
+        linear-gradient(135deg, #050712 0%, #0d0a1e 50%, #060c1a 100%);
+      animation: bg-shift 6s ease-in-out infinite alternate;
+    }
+    @keyframes bg-shift {
+      0%   { filter: hue-rotate(0deg) brightness(1); }
+      100% { filter: hue-rotate(18deg) brightness(1.1); }
+    }
+
+    /* Floating orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(60px);
+      animation: orb-float 8s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    .orb-1 {
+      width: 280px; height: 280px;
+      top: -60px; left: -60px;
+      background: rgba(124,58,237,0.3);
+      animation-delay: 0s;
+    }
+    .orb-2 {
+      width: 220px; height: 220px;
+      bottom: -40px; right: -40px;
+      background: rgba(37,99,235,0.25);
+      animation-delay: -3s;
+    }
+    .orb-3 {
+      width: 160px; height: 160px;
+      top: 40%; left: 60%;
+      background: rgba(167,139,250,0.2);
+      animation-delay: -1.5s;
+    }
+    @keyframes orb-float {
+      0%   { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(30px, 20px) scale(1.12); }
+    }
+
+    .welcome-content {
+      position: relative; z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      padding: 0 24px;
+      text-align: center;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    /* Greeting text — always visible, slides up on load */
+    .welcome-greeting {
+      font-size: clamp(1.6rem, 6.5vw, 2.4rem);
+      font-weight: 900;
+      letter-spacing: -0.01em;
+      line-height: 1.3;
+      margin-bottom: 32px;
+      color: #ffffff;
+      text-shadow:
+        0 0 30px rgba(167,139,250,0.9),
+        0 0 60px rgba(167,139,250,0.5),
+        0 2px 12px rgba(0,0,0,0.7);
+      animation: greeting-slide 0.7s cubic-bezier(0.22,1,0.36,1) forwards,
+                 greeting-glow 3s 0.7s ease-in-out infinite;
+    }
+    @keyframes greeting-slide {
+      from { transform: translateY(22px) scale(0.93); }
+      to   { transform: translateY(0)    scale(1); }
+    }
+    @keyframes greeting-glow {
+      0%, 100% { text-shadow: 0 0 30px rgba(167,139,250,0.9), 0 0 60px rgba(167,139,250,0.5), 0 2px 12px rgba(0,0,0,0.7); }
+      50%       { text-shadow: 0 0 55px rgba(220,200,255,1), 0 0 100px rgba(167,139,250,0.7), 0 2px 12px rgba(0,0,0,0.7); }
+    }
+
+    /* ── Notepad illustration ───────────────────────────────────── */
+    .np-wrap {
+      position: relative;
+      width: min(290px, 84vw);
+      margin-bottom: 28px;
+      transform: rotate(-1.5deg);
+      animation: notepad-drop 0.65s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    @keyframes notepad-drop {
+      from { transform: rotate(-1.5deg) translateY(-20px) scale(0.93); }
+      to   { transform: rotate(-1.5deg) translateY(0) scale(1); }
+    }
+
+    .np-binding {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 34px;
+      background: linear-gradient(160deg, rgba(124,58,237,0.22), rgba(91,33,182,0.14));
+      border-radius: 5px 0 0 5px;
+      border-right: 1px solid rgba(167,139,250,0.22);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 0;
+    }
+    .np-hole {
+      width: 11px; height: 11px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(167,139,250,0.45);
+      background: rgba(0,0,0,0.5);
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.6), 0 0 6px rgba(167,139,250,0.15);
+    }
+
+    .np-paper {
+      background: rgba(240,234,255,0.065);
+      border: 1px solid rgba(167,139,250,0.26);
+      border-radius: 0 10px 10px 0;
+      border-left: none;
+      padding: 14px 18px 14px 48px;
+      box-shadow:
+        6px 8px 32px rgba(0,0,0,0.45),
+        0 2px 8px rgba(167,139,250,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+      position: relative;
+    }
+
+    /* Red margin line */
+    .np-margin {
+      position: absolute;
+      left: 40px; top: 0; bottom: 0;
+      width: 1px;
+      background: rgba(239,68,68,0.22);
+    }
+
+    /* Ruled lines */
+    .np-rule {
+      height: 1px;
+      background: rgba(167,139,250,0.14);
+      margin: 11px 0;
+    }
+    .np-rule:first-child { margin-top: 2px; }
+    .np-rule:last-child  { margin-bottom: 2px; }
+
+    /* Animated writing lines */
+    .np-writing {
+      position: relative;
+      height: 22px;
+      margin: 11px 0;
+      display: flex;
+      align-items: center;
+      overflow: hidden;
+    }
+    .np-writing::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 1px;
+      background: rgba(167,139,250,0.14);
+    }
+
+    .np-text {
+      font-family: 'Comic Sans MS', 'Chalkboard SE', 'Bradley Hand', cursive;
+      font-size: 0.77rem;
+      color: #c4b5fd;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* Pen sweeps over already-visible text — decorative writing effect */
+    .np-pen {
+      position: absolute;
+      right: calc(100% - 20px);
+      font-size: 1.05rem;
+      line-height: 1;
+      pointer-events: none;
+      transform: rotate(180deg) scaleX(-1);
+      animation: np-pen-sweep 1.4s 0.4s cubic-bezier(0.4,0,0.2,1) forwards;
+    }
+    .np-pen-2 { animation: np-pen-sweep 1.4s 2.0s cubic-bezier(0.4,0,0.2,1) forwards; right: calc(100% - 20px); }
+
+    @keyframes np-pen-sweep { from { right: calc(100% - 20px); } to { right: 0; } }
+
+    /* Yellow sticky note */
+    .np-sticky {
+      position: absolute;
+      top: -15px; right: -12px;
+      width: 70px; height: 60px;
+      background: linear-gradient(140deg, rgba(253,224,71,0.32), rgba(234,179,8,0.22));
+      border: 1px solid rgba(253,224,71,0.3);
+      border-radius: 3px;
+      box-shadow: 2px 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+      transform: rotate(5deg);
+      display: flex; align-items: center; justify-content: center;
+      padding: 7px 6px;
+      font-family: 'Comic Sans MS', cursive;
+      font-size: 0.52rem;
+      color: rgba(253,240,170,0.9);
+      text-align: center;
+      line-height: 1.45;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+    }
+
+    /* Subtitle below notepad */
+    .welcome-subtitle {
+      font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+      font-weight: 500;
+      color: #e0d4ff;
+      letter-spacing: 0.04em;
+      margin-bottom: 36px;
+      text-shadow: 0 0 20px rgba(167,139,250,0.55), 0 1px 8px rgba(0,0,0,0.5);
+      animation: sub-rise 0.65s ease-out forwards, breathe 3s 0.65s ease-in-out infinite;
+    }
+    @keyframes sub-rise  { from { transform: translateY(12px); } to { transform: translateY(0); } }
+    @keyframes breathe   { 0%,100% { opacity: 0.88; } 50% { opacity: 1; color: #c4b5fd; } }
+
+    /* ── Recap Button ─────────────────────────────────────────── */
+    #recap-btn {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+      left: 24px;
+      background: rgba(124,58,237,0.18);
+      border: 1.5px solid rgba(167,139,250,0.38);
+      border-radius: 22px;
+      padding: 11px 18px;
+      color: #c4b5fd;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.15s, background 0.2s;
+      box-shadow: 0 4px 20px rgba(124,58,237,0.25);
+      animation: recap-pulse 3s ease-in-out infinite;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    @keyframes recap-pulse {
+      0%,100% { box-shadow: 0 4px 20px rgba(124,58,237,0.25); border-color: rgba(167,139,250,0.38); }
+      50%      { box-shadow: 0 4px 28px rgba(167,139,250,0.5), 0 0 16px rgba(167,139,250,0.2); border-color: rgba(167,139,250,0.65); }
+    }
+    #recap-btn:active { transform: scale(0.92); background: rgba(124,58,237,0.35); }
+
+    /* Loading dots */
+    .wc-dots {
+      display: flex;
+      gap: 8px;
+    }
+    .wc-dots span {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(167,139,250,0.75);
+      animation: dot-bounce 1.4s ease-in-out infinite;
+    }
+    .wc-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .wc-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes dot-bounce {
+      0%, 100% { transform: translateY(0);    opacity: 0.5; }
+      50%       { transform: translateY(-9px); opacity: 1; background: rgba(200,180,255,1); }
+    }
+
     /* ── Camera ── */
     #cam {
       position: fixed; inset: 0;
@@ -91,11 +377,11 @@
     }
     body:not([data-state="idle"]) #stage-label { opacity: 1; }
 
-    /* ── Answer overlay ── */
+    /* ── Answer overlay (bottom) ── */
     #overlay {
       position: fixed; bottom: 0; left: 0; right: 0;
-      padding: 24px 22px calc(env(safe-area-inset-bottom, 0px) + 116px);
-      background: linear-gradient(to top, rgba(0,0,0,0.82) 55%, transparent);
+      padding: 24px 22px calc(env(safe-area-inset-bottom, 0px) + 28px);
+      background: linear-gradient(to top, rgba(0,0,0,0.88) 55%, transparent);
       z-index: 5; opacity: 0; transform: translateY(12px);
       transition: opacity 0.3s ease, transform 0.3s ease;
       pointer-events: none;
@@ -111,7 +397,7 @@
     #answer-text {
       font-size: 1.08rem; line-height: 1.65; color: #fff;
       word-wrap: break-word; overflow-wrap: break-word;
-      max-height: 38dvh; overflow-y: auto;
+      max-height: 30dvh; overflow-y: auto;
       -webkit-overflow-scrolling: touch;
     }
     .streaming::after {
@@ -121,73 +407,120 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* ── Mic / waveform ── */
+    /* ── Centered Mic Area ── */
     #mic-area {
       position: fixed;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
-      left: 50%; transform: translateX(-50%);
-      display: flex; flex-direction: column;
-      align-items: center; gap: 10px; z-index: 10;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      z-index: 10;
     }
+
+    /* Waveform floats above mic */
     #waveform {
       display: flex; align-items: center; gap: 2.5px;
-      height: 38px; opacity: 0; transition: opacity 0.25s;
+      height: 42px; opacity: 0; transition: opacity 0.25s;
     }
     body[data-state="recording"] #waveform { opacity: 1; }
     .wv-bar {
       width: 3px; background: #fff; border-radius: 3px;
       height: 100%; transform: scaleY(0.06); transform-origin: center;
     }
+
+    /* Square mic button — the hero element */
     #mic-btn {
       position: relative;
-      width: 60px; height: 60px; border-radius: 50%;
-      background: rgba(255,255,255,0.10);
-      border: 1.5px solid rgba(255,255,255,0.22);
+      width: 120px; height: 120px;
+      border-radius: 28px;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.2);
       display: flex; align-items: center; justify-content: center;
-      backdrop-filter: blur(10px); cursor: pointer; flex-shrink: 0;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      cursor: pointer; flex-shrink: 0;
       transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+      box-shadow:
+        0 0 0 0 rgba(167,139,250,0),
+        0 8px 32px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.12);
     }
     body[data-state="idle"] #mic-btn {
       animation: idle-glow 3.2s ease-in-out infinite;
     }
     @keyframes idle-glow {
-      0%,100% { box-shadow: 0 0 14px rgba(167,139,250,0.25); }
-      50%      { box-shadow: 0 0 28px rgba(167,139,250,0.55);
-                 border-color: rgba(167,139,250,0.5); }
+      0%,100% {
+        box-shadow: 0 0 18px rgba(167,139,250,0.28), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+        border-color: rgba(167,139,250,0.25);
+      }
+      50% {
+        box-shadow: 0 0 40px rgba(167,139,250,0.55), 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.12);
+        border-color: rgba(167,139,250,0.55);
+        background: rgba(167,139,250,0.12);
+      }
     }
     body[data-state="recording"] #mic-btn {
-      background: rgba(239,68,68,0.22);
-      border-color: rgba(239,68,68,0.6);
-      box-shadow: 0 0 22px rgba(239,68,68,0.45);
+      background: rgba(239,68,68,0.2);
+      border-color: rgba(239,68,68,0.65);
+      box-shadow: 0 0 30px rgba(239,68,68,0.5), 0 8px 32px rgba(0,0,0,0.4);
       animation: none;
     }
-    body[data-state="processing"] #mic-btn { opacity: 0.45; animation: none; }
+    body[data-state="processing"] #mic-btn {
+      opacity: 0.5; animation: none;
+    }
 
+    /* Ripple rings match the square shape */
     .ripple-ring {
-      position: absolute; width: 60px; height: 60px;
-      border-radius: 50%;
+      position: absolute;
+      width: 120px; height: 120px;
+      border-radius: 28px;
       border: 2px solid rgba(167,139,250,0.55);
       opacity: 0; pointer-events: none;
     }
     body[data-state="processing"] .ripple-ring:nth-child(1) {
-      animation: ripple 1.3s 0.0s ease-out infinite;
+      animation: ripple-sq 1.3s 0.0s ease-out infinite;
     }
     body[data-state="processing"] .ripple-ring:nth-child(2) {
-      animation: ripple 1.3s 0.45s ease-out infinite;
+      animation: ripple-sq 1.3s 0.45s ease-out infinite;
     }
-    @keyframes ripple {
-      0%   { transform: scale(1);   opacity: 0.75; }
-      100% { transform: scale(2.8); opacity: 0; }
+    @keyframes ripple-sq {
+      0%   { transform: scale(1);    opacity: 0.75; }
+      100% { transform: scale(2.4);  opacity: 0; }
     }
 
+    /* Mic icon color when recording */
+    body[data-state="recording"] #mic-btn svg path { fill: #fca5a5; }
+
     #tap-hint {
-      font-size: 0.65rem; letter-spacing: 0.05em;
-      color: rgba(255,255,255,0.38); white-space: nowrap;
-      transition: opacity 0.2s; text-align: center; max-width: 280px;
+      font-size: 0.68rem; letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.4); white-space: nowrap;
+      transition: opacity 0.2s; text-align: center;
+      max-width: 280px;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.95);
     }
     body:not([data-state="idle"]) #tap-hint { opacity: 0; }
 
-    /* Source tag shown after an answer to indicate memory vs general knowledge */
+    /* Live transcript sits below tap hint */
+    #transcript-live {
+      max-width: 280px;
+      text-align: center;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: rgba(255,255,255,0.75);
+      letter-spacing: 0.01em;
+      word-break: break-word;
+      min-height: 1.25em;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+      pointer-events: none;
+    }
+    #transcript-live.visible { opacity: 1; }
+    body:not([data-state="idle"]) #transcript-live { opacity: 0 !important; }
+
+    /* Source tag */
     #source-tag {
       display: none; margin-top: 8px;
       font-size: 0.6rem; font-weight: 700;
@@ -219,6 +552,7 @@
       height: 68dvh;
       background: rgba(8,8,18,0.93);
       backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
       border-radius: 20px 20px 0 0;
       border-top: 1px solid var(--border);
       z-index: 50; transform: translateY(100%);
@@ -279,7 +613,7 @@
     /* ── Swipe hint ── */
     #swipe-hint {
       position: fixed;
-      bottom: calc(env(safe-area-inset-bottom,0px) + 108px);
+      bottom: calc(env(safe-area-inset-bottom,0px) + 28px);
       left: 50%; transform: translateX(-50%);
       display: flex; flex-direction: column; align-items: center; gap: 4px;
       opacity: 0; transition: opacity 0.5s; pointer-events: none; z-index: 8;
@@ -324,41 +658,60 @@
     @keyframes tap-expand {
       to { transform: translate(-50%, -50%) scale(5); opacity: 0; }
     }
-
-    /* ── Live transcript (wake-word listening feedback) ── */
-    #transcript-live {
-      max-width: 300px;
-      text-align: center;
-      font-size: 0.82rem;
-      line-height: 1.5;
-      color: rgba(255,255,255,0.72);
-      letter-spacing: 0.01em;
-      word-break: break-word;
-      min-height: 1.25em;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      text-shadow: 0 1px 8px rgba(0,0,0,0.95);
-      pointer-events: none;
-    }
-    #transcript-live.visible { opacity: 1; }
-    /* Hide transcript when not in idle — recording/processing have their own UI */
-    body:not([data-state="idle"]) #transcript-live {
-      opacity: 0 !important;
-    }
-
-    /* Mic button pulses more visibly while actively listening for wake word */
-    body[data-state="idle"] #mic-btn {
-      animation: idle-glow 3.2s ease-in-out infinite;
-    }
   </style>
 </head>
 <body data-state="idle">
 
-  <!-- Camera -->
+  <!-- ── Welcome Screen ───────────────────────────────────────────────────── -->
+  <div id="welcome-screen">
+    <div class="welcome-bg"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="welcome-content">
+      <p class="welcome-greeting">helloooo, you here again !!!</p>
+
+      <!-- Notepad illustration -->
+      <div class="np-wrap">
+        <div class="np-binding">
+          <div class="np-hole"></div>
+          <div class="np-hole"></div>
+          <div class="np-hole"></div>
+          <div class="np-hole"></div>
+          <div class="np-hole"></div>
+        </div>
+        <div class="np-paper">
+          <div class="np-margin"></div>
+          <div class="np-sticky">📌 I remember<br>everything!<br>probably 😅</div>
+          <div class="np-rule"></div>
+          <div class="np-rule"></div>
+          <div class="np-writing">
+            <span class="np-text">brain.exe launching 🚀</span>
+            <span class="np-pen">✏️</span>
+          </div>
+          <div class="np-rule"></div>
+          <div class="np-writing">
+            <span class="np-text np-text-2">mission: remember everything 🧠</span>
+            <span class="np-pen np-pen-2">✏️</span>
+          </div>
+          <div class="np-rule"></div>
+          <div class="np-rule"></div>
+        </div>
+      </div>
+
+      <p class="welcome-subtitle">your personal brain-o-tron, reporting for duty 🫡</p>
+
+      <div class="wc-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Camera ───────────────────────────────────────────────────────────── -->
   <video id="cam" autoplay playsinline muted></video>
   <canvas id="canvas"></canvas>
 
-  <!-- Top bar -->
+  <!-- ── Top bar ──────────────────────────────────────────────────────────── -->
   <div id="topbar">
     <span class="logo">SnapOn</span>
     <div id="topbar-right">
@@ -367,39 +720,44 @@
     </div>
   </div>
 
-  <!-- Stage progress -->
+  <!-- ── Stage progress ───────────────────────────────────────────────────── -->
   <div id="progress-track"><div id="progress-fill"></div></div>
   <div id="stage-label"></div>
 
-  <!-- Answer overlay -->
+  <!-- ── Answer overlay (bottom) ──────────────────────────────────────────── -->
   <div id="overlay">
     <p id="status-msg"></p>
     <p id="answer-text"></p>
     <div id="source-tag"></div>
   </div>
 
-  <!-- Swipe hint -->
+  <!-- ── Centered square mic ──────────────────────────────────────────────── -->
+  <div id="mic-area">
+    <div id="waveform"></div>
+    <div id="mic-btn" role="button" aria-label="Tap to speak or say Hey Snap">
+      <div class="ripple-ring"></div>
+      <div class="ripple-ring"></div>
+      <svg viewBox="0 0 24 24" fill="white" width="36" height="36" aria-hidden="true">
+        <path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3z"/>
+        <path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+      </svg>
+    </div>
+    <div id="tap-hint">Say "Hey Snap" or tap to speak</div>
+    <div id="transcript-live"></div>
+  </div>
+
+  <!-- ── Swipe hint ───────────────────────────────────────────────────────── -->
   <div id="swipe-hint">
     <div class="swipe-chevron"></div>
     <span>swipe up for memories</span>
   </div>
 
-  <!-- Mic area -->
-  <div id="mic-area">
-    <div id="transcript-live"></div>
-    <div id="waveform"></div>
-    <div id="mic-btn" role="img" aria-label="Listening for wake word">
-      <div class="ripple-ring"></div>
-      <div class="ripple-ring"></div>
-      <svg viewBox="0 0 24 24" fill="white" width="26" height="26" aria-hidden="true">
-        <path d="M12 15c1.66 0 3-1.34 3-3V6c0-1.66-1.34-3-3-3S9 4.34 9 6v6c0 1.66 1.34 3 3 3z"/>
-        <path d="M17 12c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-2.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-      </svg>
-    </div>
-    <div id="tap-hint">Point camera and ask anything — or save something to remember it later</div>
-  </div>
+  <!-- ── Recap button ─────────────────────────────────────────────────────── -->
+  <button id="recap-btn" onclick="showMemories()" aria-label="Show memory recap">
+    <span style="font-size:1rem">🧠</span> Recap
+  </button>
 
-  <!-- Memories panel -->
+  <!-- ── Memories panel ───────────────────────────────────────────────────── -->
   <div id="mem-backdrop" onclick="hideMemories()"></div>
   <div id="mem-panel" role="dialog" aria-label="Memories">
     <div id="mem-handle" onclick="hideMemories()" role="button" aria-label="Close"></div>
@@ -410,49 +768,52 @@
     <div id="mem-scroll"><div id="mem-list"></div></div>
   </div>
 
-  <!-- Toast -->
+  <!-- ── Toast ────────────────────────────────────────────────────────────── -->
   <div id="toast" role="status"></div>
 
 <script>
 'use strict';
 
 // ── Config ────────────────────────────────────────────────────────────────────
-const SILENCE_THRESHOLD = 13;    // avg freq amplitude below this = silence
-const SILENCE_MS        = 1500;  // ms of silence before auto-stop
-const ANSWER_HIDE_MS    = 9000;  // ms before answer overlay auto-hides
-const N_BARS            = 24;    // waveform bar count
-const READY_POLL_MS     = 2000;  // polling interval for /api/ready
+const SILENCE_THRESHOLD = 13;
+const SILENCE_MS        = 1500;
+const ANSWER_HIDE_MS    = 9000;
+const N_BARS            = 24;
+const READY_POLL_MS     = 2000;
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let appState     = 'idle';  // idle | recording | processing
-let audioCtx     = null;
-let analyser     = null;
-let mediaRec     = null;
-let audioChunks  = [];
+let appState      = 'idle';
+let audioCtx      = null;
+let analyser      = null;
+let mediaRec      = null;
+let audioChunks   = [];
 let currentStream = null;
-let stopRecFn    = null;
-let answerTimer  = null;
-let fullAnswer   = '';
-let memoriesOpen = false;
+let stopRecFn     = null;
+let answerTimer   = null;
+let fullAnswer    = '';
+let memoriesOpen  = false;
 let readyInterval = null;
 
 // ── DOM refs ──────────────────────────────────────────────────────────────────
-const camEl           = document.getElementById('cam');
-const canvasEl        = document.getElementById('canvas');
-const statusDot       = document.getElementById('status-dot');
-const modelLabel      = document.getElementById('model-label');
-const progressFill    = document.getElementById('progress-fill');
-const stageLabel      = document.getElementById('stage-label');
-const overlay         = document.getElementById('overlay');
-const statusMsg       = document.getElementById('status-msg');
-const answerText      = document.getElementById('answer-text');
-const waveformEl      = document.getElementById('waveform');
-const memPanel        = document.getElementById('mem-panel');
-const memBackdrop     = document.getElementById('mem-backdrop');
-const memList         = document.getElementById('mem-list');
-const toastEl         = document.getElementById('toast');
-const swipeHint       = document.getElementById('swipe-hint');
+const camEl            = document.getElementById('cam');
+const canvasEl         = document.getElementById('canvas');
+const statusDot        = document.getElementById('status-dot');
+const modelLabel       = document.getElementById('model-label');
+const progressFill     = document.getElementById('progress-fill');
+const stageLabel       = document.getElementById('stage-label');
+const overlay          = document.getElementById('overlay');
+const statusMsg        = document.getElementById('status-msg');
+const answerText       = document.getElementById('answer-text');
+const waveformEl       = document.getElementById('waveform');
+const memPanel         = document.getElementById('mem-panel');
+const memBackdrop      = document.getElementById('mem-backdrop');
+const memList          = document.getElementById('mem-list');
+const toastEl          = document.getElementById('toast');
+const swipeHint        = document.getElementById('swipe-hint');
 const transcriptLiveEl = document.getElementById('transcript-live');
+const welcomeScreen    = document.getElementById('welcome-screen');
+// welcomeClockEl removed — clock replaced by notepad
+const micBtn           = document.getElementById('mic-btn');
 
 // Build waveform bars
 const bars = Array.from({ length: N_BARS }, () => {
@@ -472,8 +833,7 @@ async function startCamera() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia(c);
       camEl.srcObject = stream;
-      // Only mirror-flip front camera; rear camera shows natural orientation
-      const track = stream.getVideoTracks()[0];
+      const track    = stream.getVideoTracks()[0];
       const settings = track.getSettings();
       camEl.style.transform = (settings.facingMode === 'user') ? 'scaleX(-1)' : '';
       await camEl.play();
@@ -498,7 +858,6 @@ function captureFrame() {
 // ── Recording ─────────────────────────────────────────────────────────────────
 async function startRecording() {
   if (appState === 'recording') {
-    // Second tap = manual stop
     if (stopRecFn) stopRecFn();
     return;
   }
@@ -518,7 +877,7 @@ async function startRecording() {
 
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     currentStream = stream;
-    audioChunks = [];
+    audioChunks   = [];
 
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 256;
@@ -540,13 +899,11 @@ async function startRecording() {
       if (!active) return;
       analyser.getByteFrequencyData(dataArr);
 
-      // Drive waveform
       const step = Math.floor(dataArr.length / N_BARS);
       for (let i = 0; i < N_BARS; i++) {
         bars[i].style.transform = 'scaleY(' + Math.max(0.05, (dataArr[i * step] / 255) * 0.95) + ')';
       }
 
-      // Silence detection
       let sum = 0;
       for (let i = 0; i < dataArr.length; i++) sum += dataArr[i];
       if ((sum / dataArr.length) < SILENCE_THRESHOLD) {
@@ -725,8 +1082,8 @@ function setState(s) {
     clearTranscript();
   }
 }
-function setDot(c)   { statusDot.className = 'dot ' + c; }
-function setStatus(m){ statusMsg.textContent = m; }
+function setDot(c)    { statusDot.className = 'dot ' + c; }
+function setStatus(m) { statusMsg.textContent = m; }
 function setProgress(pct, label) {
   progressFill.style.width = pct + '%';
   stageLabel.textContent   = label;
@@ -842,7 +1199,6 @@ async function checkReady() {
 // ── Pointer / touch input ─────────────────────────────────────────────────────
 let ptX = 0, ptY = 0, ptMoved = false, ptT = 0;
 
-// Prevent viewport scroll/zoom on camera background; let memories panel scroll
 document.addEventListener('touchstart', function(e) {
   if (memPanel.contains(e.target)) return;
   e.preventDefault();
@@ -859,12 +1215,16 @@ document.addEventListener('pointermove', function(e) {
 document.addEventListener('pointerup', function(e) {
   if (memPanel.contains(e.target) || memBackdrop.contains(e.target)) return;
   const dt = Date.now() - ptT;
-  const dy = ptY - e.clientY;          // positive = swipe up
+  const dy = ptY - e.clientY;
   const dx = Math.abs(ptX - e.clientX);
 
   if (!ptMoved || dt < 180) {
-    // Tap — only dismiss memories panel; recording is wake-word-only now
-    if (memoriesOpen) hideMemories();
+    if (memoriesOpen) { hideMemories(); return; }
+    // Tap on mic button starts recording
+    if (micBtn.contains(e.target)) {
+      tapSplash(e.clientX, e.clientY);
+      startRecording();
+    }
   } else if (dy > 65 && dx < 55 && appState === 'idle' && !memoriesOpen) {
     showMemories();
   } else if (dy < -65 && dx < 55 && memoriesOpen) {
@@ -880,15 +1240,14 @@ function fmtDate(iso) {
   catch { return iso; }
 }
 
-// ── Wake word (Web Speech API continuous listener) ────────────────────────────
+// ── Wake word ─────────────────────────────────────────────────────────────────
 const _SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let wakeRec       = null;
-let wakeRunning   = false;
+let wakeRec      = null;
+let wakeRunning  = false;
 let transcriptTmr = null;
 
 function initWakeWord() {
   if (!_SR) {
-    // Browser doesn't support SpeechRecognition — show a static note
     transcriptLiveEl.textContent = 'Wake word unsupported in this browser';
     transcriptLiveEl.classList.add('visible');
     return;
@@ -905,24 +1264,19 @@ function initWakeWord() {
   wakeRec.onresult = (event) => {
     if (appState !== 'idle') return;
 
-    // Accumulate all new results (interim + final) into one string
     let transcript = '';
     for (let i = event.resultIndex; i < event.results.length; i++) {
       transcript += event.results[i][0].transcript;
     }
 
     const lower = transcript.toLowerCase().trim();
-
-    // Show what the user is saying as live confidence feedback
     setTranscript(transcript.trim());
 
-    // Detect wake phrase with word-boundary matching
     if (/\bhey\s+snap\b/i.test(lower)) {
       onWakeWordDetected();
       return;
     }
 
-    // Auto-clear transcript after 2.5 s of silence
     clearTimeout(transcriptTmr);
     transcriptTmr = setTimeout(clearTranscript, 2500);
   };
@@ -933,13 +1287,11 @@ function initWakeWord() {
       showToast('Mic permission denied', 'error');
       return;
     }
-    // All other errors (network, aborted, etc.) — restart after brief pause
     if (appState === 'idle') setTimeout(resumeWake, 1200);
   };
 
   wakeRec.onend = () => {
     wakeRunning = false;
-    // Auto-restart so it stays always-on while idle
     if (appState === 'idle') setTimeout(resumeWake, 400);
   };
 
@@ -962,7 +1314,6 @@ function onWakeWordDetected() {
   clearTranscript();
   pauseWake();
   haptic();
-  // Short visual pause so the transition feels intentional, then start recording
   setTimeout(startRecording, 180);
 }
 
@@ -979,28 +1330,35 @@ function clearTranscript() {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+
+// Synchronous hide for #nosplash (dev/screenshot); otherwise 3s auto-dismiss
+if (location.hash === '#nosplash') {
+  welcomeScreen.classList.add('hidden');
+} else {
+  setTimeout(() => { welcomeScreen.classList.add('hidden'); }, 30000);
+}
+
 startCamera();
 readyInterval = setInterval(checkReady, READY_POLL_MS);
 checkReady();
 initWakeWord();
 
-// Preload speechSynthesis voices (async in Chrome)
 if (window.speechSynthesis) {
   window.speechSynthesis.getVoices();
   if (typeof window.speechSynthesis.addEventListener === 'function') {
-    window.speechSynthesis.addEventListener('voiceschanged', function() {
+    window.speechSynthesis.addEventListener('voiceschanged', () => {
       window.speechSynthesis.getVoices();
     });
   }
 }
 
-// Show swipe hint briefly after 5s idle
+// Show swipe hint briefly after 7s of idle
 setTimeout(function() {
   if (appState === 'idle') {
     swipeHint.classList.add('show');
-    setTimeout(function() { swipeHint.classList.remove('show'); }, 4500);
+    setTimeout(() => swipeHint.classList.remove('show'), 4500);
   }
-}, 5000);
+}, 7000);
 </script>
 </body>
 </html>
